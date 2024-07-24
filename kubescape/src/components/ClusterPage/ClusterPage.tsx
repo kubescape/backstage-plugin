@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import React, { PropsWithChildren, useState } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Box, Button, Container, Paper, Typography } from '@material-ui/core';
@@ -33,7 +34,7 @@ const HTMLDisplay = ({ htmlContent }) => {
   );
 };
 
-export function ClusterPageComponent() {
+export function ClusterPage() {
   const [scanResult, setScanResult] = useState('');
   async function handleScan() {
     try {

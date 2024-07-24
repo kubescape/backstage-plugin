@@ -1,1 +1,0 @@
-export { LandingPageComponent } from './LandingPageComponent';

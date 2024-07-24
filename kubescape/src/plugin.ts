@@ -15,8 +15,7 @@ export const kubescapePlugin = createPlugin({
 export const KubescapePage = kubescapePlugin.provide(
   createRoutableExtension({
     name: 'KubescapePage',
-    component: () =>
-      import('./components/RootPageComponent').then(m => m.RootPageComponent),
+    component: () => import('./components/RootPage').then(m => m.RootPage),
     mountPoint: rootRouteRef,
   }),
 );

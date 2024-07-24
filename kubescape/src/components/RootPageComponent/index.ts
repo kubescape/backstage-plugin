@@ -1,1 +1,0 @@
-export { RootPageComponent } from './RootPageComponent';
