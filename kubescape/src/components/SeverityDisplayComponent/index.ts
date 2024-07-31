@@ -1,0 +1,1 @@
+export { SeverityDisplayComponent } from './SeverityDisplayComponent';

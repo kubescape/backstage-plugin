@@ -41,39 +41,85 @@ import {
   TabbedLayout,
   TrendLine,
 } from '@backstage/core-components';
-import { DataGrid, GridRowsProp, GridColDef } from '@mui/x-data-grid';
+import {
+  DataGrid,
+  GridRowsProp,
+  GridColDef,
+  GridRenderCellParams,
+} from '@mui/x-data-grid';
 import NavigateNextIcon from '@material-ui/icons/NavigateNext';
+import { Dashboard } from './DashBoardComponent';
+import { SeverityDisplayComponent } from '../SeverityDisplayComponent';
+import { ChipData } from '../SeverityDisplayComponent/SeverityDisplayComponent';
 
 const baseURL = 'http://localhost:7007/api/kubescape';
 
-const HTMLDisplay = ({ htmlContent }) => {
-  return (
-    <Paper elevation={3}>
-      <Box
-        sx={{ bgcolor: '#cfe8fc', margin: '10px' }}
-        p={2}
-        height="600px"
-        width="100%"
-      >
-        <iframe
-          srcDoc={htmlContent}
-          title="HTML Content"
-          width="100%"
-          height="100%"
-          style={{ border: 'none' }}
-        />
-      </Box>
-    </Paper>
-  );
-};
-
+const date = new Date();
 const clusterName = 'Minikube';
-const resourceRows: GridRowsProp = [];
-const resourceColumns: GridColDef = [
-  { field: 'name', headerName: 'Resource', width: 100 },
-  { field: 'kind', headerName: 'Kind', width: 100 },
-  { field: 'namespace', headerName: 'Namespace', width: 100 },
-  { field: 'failedControls', headerName: 'Failed Control Status', width: 100 },
+const resourceRows: GridRowsProp = [
+  {
+    id: 1,
+    name: 'kubernetes-dashboard',
+    kind: 'Deployment',
+    namespace: 'kubernetes-dashboard',
+    failedControls: [
+      { key: 'Critical', label: 0 },
+      { key: 'High', label: 0 },
+      { key: 'Medium', label: 0 },
+      { key: 'Low', label: 0 },
+    ],
+    lastControlScan: date,
+    vulnerabilities: [
+      { key: 'Critical', label: 0 },
+      { key: 'High', label: 0 },
+      { key: 'Medium', label: 0 },
+      { key: 'Low', label: 0 },
+    ],
+    lastVulnerabilityScan: date,
+  },
+];
+const resourceColumns: GridColDef[] = [
+  { field: 'name', headerName: 'Resource', width: 200 },
+  { field: 'kind', headerName: 'Kind', width: 150 },
+  { field: 'namespace', headerName: 'Namespace', width: 160 },
+  {
+    field: 'failedControls',
+    headerName: 'Failed Control Status',
+    width: 305,
+    renderCell: (params: GridRenderCellParams) => (
+      <SeverityDisplayComponent data={params.value as ChipData[]} />
+    ),
+  },
+  {
+    field: 'lastControlScan',
+    headerName: 'Last Control Scan',
+    width: 200,
+    valueFormatter: params => {
+      return params.value?.toLocaleString();
+    },
+  },
+  {
+    field: 'vulnerabilities',
+    headerName: 'Vulnerabilities Finding',
+    width: 305,
+    renderCell: (params: GridRenderCellParams) => (
+      <SeverityDisplayComponent data={params.value as ChipData[]} />
+    ),
+  },
+  {
+    field: 'lastVulnerabilityScan',
+    headerName: 'Last Vulnerabilities Scan',
+    width: 200,
+    valueFormatter: params => {
+      return params.value?.toLocaleString();
+    },
+  },
+  {
+    field: 'vulnerabilities scan',
+    headerName: 'Scan',
+    width: 200,
+    renderCell: () => <Button variant="contained">Scan</Button>,
+  },
 ];
 
 const controlRows: GridRowsProp = [
@@ -141,88 +187,16 @@ export function ClusterPage() {
                 sx={{ '& > :not(style) + :not(style)': { marginLeft: 5 } }}
               >
                 <Button variant="contained" color="primary">
-                  Vulnerabilities Panel
-                </Button>
-                <Button variant="contained" color="primary">
                   Compliance Scan
                 </Button>
               </Box>
             </ContentHeader>
           </Grid>
-          <Grid container>
-            <Grid item>
-              <GaugeCard
-                variant="fullHeight"
-                alignGauge="bottom"
-                size="small"
-                title="NSA Score"
-                progress={0.9}
-              />
-            </Grid>
-            <Grid item>
-              <GaugeCard
-                variant="fullHeight"
-                alignGauge="bottom"
-                size="small"
-                title="MITRE Score"
-                progress={0.6}
-              />
-            </Grid>
-            <Grid item>
-              <Card>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Failure Statistics</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {failure_data.map(row => (
-                      <TableRow key={row.type}>
-                        <TableCell component="th">{row.type}</TableCell>
-                        <TableCell align="right">{row.count}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Card>
-            </Grid>
-            <Grid item md={4}>
-              <InfoCard title="Trends over time" noPadding>
-                <CardContent>
-                  <TrendLine
-                    data={[0.8, 0.7, 0.5, 0.1]}
-                    title="Trend over time"
-                  />
-                </CardContent>
-              </InfoCard>
-            </Grid>
-          </Grid>
+          <Dashboard failure_data={failure_data} />
           <Grid item style={{ height: '70vh' }}>
-            <DataGrid rows={controlRows} columns={controlCols} />
+            <DataGrid rows={resourceRows} columns={resourceColumns} />
           </Grid>
         </Grid>
-        {/* <Box width="100%"> */}
-        {/* <TabbedCard title="Cluster Information">
-        <CardTab style={cardContentStyle} label="Compliance">
-          <div>
-            <Content>
-              <Typography>This is the cluster page</Typography>
-
-              <Button variant="contained" onClick={handleScan}>
-                Cluster Scan
-              </Button>
-              <Container maxWidth="md">
-                <HTMLDisplay htmlContent={scanResult} />
-              </Container>
-            </Content>
-          </div>
-        </CardTab>
-        <CardTab style={cardContentStyle} label="Vulnerability">
-          <div>Vulnerability</div>
-        </CardTab>
-      </TabbedCard> */}
-        {/* </Box> */}
       </Content>
     </Page>
   );

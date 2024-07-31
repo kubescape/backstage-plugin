@@ -8,9 +8,18 @@ import {
   Table,
   TableColumn,
 } from '@backstage/core-components';
-import { Button } from '@material-ui/core';
+import { Box, Button, Typography } from '@material-ui/core';
 import { useNavigate } from 'react-router-dom';
 import React from 'react';
+import { SeverityDisplayComponent } from '../SeverityDisplayComponent';
+import { ChipData } from '../SeverityDisplayComponent/SeverityDisplayComponent';
+import {
+  DataGrid,
+  GridColDef,
+  GridRenderCellParams,
+  GridRowProps,
+  GridRowsProp,
+} from '@mui/x-data-grid';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -18,46 +27,57 @@ export function LandingPage() {
     navigate('../cluster', { state: { from: source } });
   };
 
-  const columns: TableColumn[] = [
-    { title: 'status', field: 'status' },
+  const columns: GridColDef[] = [
     {
-      title: 'Cluster Name',
+      headerName: 'Cluster Name',
       field: 'clusterName',
-      render: (row: Partial<TableData>) => (
+      width: 200,
+      renderCell: (params: GridRenderCellParams) => (
         <Button
+          fullWidth
           variant="contained"
           onClick={() => {
-            goToCluster(row.clusterName);
+            goToCluster(params.value);
           }}
         >
-          {row.clusterName}
+          {params.value as string}
         </Button>
       ),
     },
-    { title: 'Node', field: 'node' },
-    { title: 'Last Scan', field: 'lastScan' },
-    { title: 'Framework', field: 'framework' },
-    { title: 'Failed Information', field: 'failedResources' },
+    { headerName: 'Node', field: 'node', width: 110 },
+    {
+      headerName: 'Last Scan',
+      field: 'lastScan',
+      type: 'string',
+      width: 200,
+      valueFormatter: params => {
+        return params.value?.toLocaleString();
+      },
+    },
+    { headerName: 'Framework', field: 'framework', width: 200 },
+    {
+      headerName: 'Failed Controls',
+      field: 'failedResources',
+      minWidth: 305,
+      renderCell: (params: GridRenderCellParams) => (
+        <SeverityDisplayComponent data={params.value as ChipData[]} />
+      ),
+    },
   ];
 
-  interface TableData {
-    status: string;
-    clusterName: string;
-    node: number;
-    lastScan: string;
-    framework: string;
-    failedResources: string;
-  }
-
-  const placeholderData: Array<TableData> = [
+  const placeholderData: GridRowsProp = [
     {
-      status: 'connected',
+      id: 1,
       clusterName: 'my minikube',
       node: 3,
       framework: 'NSA',
-      lastScan: new Date().toString(),
-      failedResources:
-        'Contains failed information for complaince and vulnerabilities',
+      lastScan: new Date(),
+      failedResources: [
+        { key: 'Critical', label: 0 },
+        { key: 'High', label: 0 },
+        { key: 'Medium', label: 0 },
+        { key: 'Low', label: 0 },
+      ],
     },
   ];
 
@@ -78,12 +98,7 @@ export function LandingPage() {
           <SupportButton>A description of your plugin goes here.</SupportButton>
         </ContentHeader>
 
-        <Table
-          options={{ paging: true }}
-          data={placeholderData}
-          columns={columns}
-          title="Clusters"
-        />
+        <DataGrid columns={columns} rows={placeholderData} />
       </Content>
     </Page>
   );
