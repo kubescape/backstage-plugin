@@ -33,7 +33,7 @@ const useStyles = makeStyles((theme: Theme) =>
 export function SeverityDisplayComponent({ data }) {
   const classes = useStyles();
   return (
-    <ButtonBase component="ul" className={classes.root}>
+    <Box component="ul" className={classes.root}>
       {data?.map(item => {
         return (
           <li key={item.key}>
@@ -45,6 +45,6 @@ export function SeverityDisplayComponent({ data }) {
           </li>
         );
       })}
-    </ButtonBase>
+    </Box>
   );
 }
