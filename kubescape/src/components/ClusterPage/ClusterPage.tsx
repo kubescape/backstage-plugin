@@ -86,10 +86,6 @@ export function ClusterPage() {
     setSidePanelOpen(false);
     setSelectedResource(undefined);
   };
-  useEffect(() => {
-    // setSidePanelInfo({ type: sidePanelType, info: selectedResource });
-    console.log(selectedResource);
-  }, [selectedResource]);
 
   const classes = useStyles();
 
@@ -143,7 +139,6 @@ export function ClusterPage() {
         <ButtonBase
           onClick={() => {
             setSelectedResource(params.row);
-            console.log(selectedResource);
             setSidePanelType('Control');
             setSidePanelOpen(true);
           }}
@@ -168,7 +163,6 @@ export function ClusterPage() {
         <ButtonBase
           onClick={() => {
             setSelectedResource(params.row);
-            console.log(selectedResource);
             setSidePanelType('Vulnerabilities');
             setSidePanelOpen(true);
           }}
