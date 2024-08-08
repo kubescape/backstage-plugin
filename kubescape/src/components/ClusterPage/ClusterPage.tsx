@@ -59,6 +59,8 @@ import {
   VulnerabilitiesSidePanelComponent,
 } from '../SidePanelComponent';
 
+import { getBasicScan } from '../../api/KubescapeClient';
+
 const useStyles = makeStyles({
   sidePanel: {
     width: '80vw',
@@ -88,22 +90,6 @@ export function ClusterPage() {
   };
 
   const classes = useStyles();
-
-  async function handleScan() {
-    try {
-      setScanResult('Processing Scan');
-      const response = await fetch(`${baseURL}/scan`);
-      if (!response.ok) {
-        throw new Error(`Response status: ${response.status}`);
-      }
-      const json = await response.json();
-      console.log(json);
-      const result = json.scanResult;
-      setScanResult(result);
-    } catch (error) {
-      console.error(error.message);
-    }
-  }
 
   const resourceRows: GridRowsProp = [
     {
@@ -203,7 +189,11 @@ export function ClusterPage() {
                 flexDirection="row"
                 sx={{ '& > :not(style) + :not(style)': { marginLeft: 5 } }}
               >
-                <Button variant="contained" color="primary">
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={getBasicScan}
+                >
                   Compliance Scan
                 </Button>
               </Box>
