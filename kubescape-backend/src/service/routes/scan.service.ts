@@ -1,5 +1,6 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
+import { KubescapeDatabse } from '../../database/KubescapeDatabase';
 
 export interface SeverityStats {
   criticalSeverity: number;
@@ -11,10 +12,11 @@ export interface SeverityStats {
 export interface ResourceDetail {
   name: string;
   kind: string;
-  namespace: string;
-  controlScanTime: string;
+  namespace?: string;
+  created: Date;
+  cluster_id: number;
   controlStats?: SeverityStats;
-  vulnerabilitiesScanTime: string;
+  vulnerabilitiesScanTime?: string;
   vulnerabilitiesFindings?: SeverityStats;
 }
 
@@ -55,25 +57,41 @@ function getSeverity(baseScore: number): string {
   return 'SeverityUnknown';
 }
 
-export function basicScan(): BasicScanResponse {
+export function basicScan(database: KubescapeDatabse): BasicScanResponse {
+  const scanDate = new Date();
   // const output = execSync(
   //   'kubescape scan --kubeconfig ./kubescapeScanResult/kube.conf --format json --format-version v2 --output ./kubescapeScanResult/results2.json',
   //   { encoding: 'utf-8' },
   // ).toString(); // the default is 'buffer'
   // console.log('Output was:\n', output);
+
   const data = fs.readFileSync('./kubescapeScanResult/results2.json', {
     encoding: 'utf8',
     flag: 'r',
   });
 
   const rawJson = JSON.parse(data);
-  const resourceMap = new Map(
+  const resourceMap = Object.fromEntries(
     rawJson.resources.map(obj => [obj.resourceID, obj]),
   );
-  const controlInfo = rawJson.summaryDetails.controls;
+
+  const controlInfo = Object.entries(rawJson.summaryDetails.controls).map(
+    ([control_id, control]) => ({
+      created: scanDate, // Current date and time
+      name: control.name,
+      control_id: control_id,
+      severity: getSeverity(control.scoreFactor),
+      compliance_score: control.complianceScore,
+      cluster_id: 0,
+      // 0 for test
+    }),
+  );
+
+  // update cluster control info
+  database.updateControls(controlInfo);
 
   // console.log(resourceMap);
-  let resultJSON: BasicScanResponse = {
+  const resultJSON: BasicScanResponse = {
     nsaScore: rawJson.summaryDetails.frameworks[2].complianceScore as number,
     mitreScore: rawJson.summaryDetails.frameworks[2].complianceScore as number,
     totalControlFailure: rawJson.summaryDetails
@@ -83,16 +101,22 @@ export function basicScan(): BasicScanResponse {
 
   for (const resource of rawJson.results) {
     let mapping = {
+      resource_id: '',
       name: '',
       kind: '',
       namespace: '',
-      controlScanTime: '',
+      created: scanDate,
+      cluster_id: 0,
       // controlStats: {},
-      vulnerabilitiesScanTime: '',
+      // vulnerabilitiesScanTime: '',
       // vulnerabilitiesFindings: {},
     };
     const resourceID = resource.resourceID;
     const resourceInfo = resourceMap[resourceID];
+    if (resourceInfo === undefined) {
+      console.log(`\n\n${resourceID}`);
+    }
+    mapping.resource_id = resourceID;
     if ('metadata' in resourceInfo.object) {
       mapping.name = resourceInfo.object.metadata.name;
       mapping.kind = resourceInfo.object.kind;
@@ -101,16 +125,19 @@ export function basicScan(): BasicScanResponse {
       mapping.name = resourceInfo.object.name;
       mapping.kind = resourceInfo.object.kind;
     }
-
-    mapping.controlScanTime = new Date().toTimeString();
-
-    // mapping.name = resourceMap[resource.resourceID].object.metadata.name;
-    // mapping.kind = resourceMap[resource.resourceID].object.kind;
-    // mapping.namespace =
-    //   resourceMap[resource.resourceID].object.metadata.namespace;
-    // mapping.controlScanTime = new Date().toTimeString();
     resultJSON.resourceDetails.push(mapping);
   }
+  database.updateFailedResource(resultJSON.resourceDetails);
+
+  //   mapping.controlScanTime = new Date().toTimeString();
+
+  //   // mapping.name = resourceMap[resource.resourceID].object.metadata.name;
+  //   // mapping.kind = resourceMap[resource.resourceID].object.kind;
+  //   // mapping.namespace =
+  //   //   resourceMap[resource.resourceID].object.metadata.namespace;
+  //   // mapping.controlScanTime = new Date().toTimeString();
+  //
+  // }
 
   return resultJSON;
 }

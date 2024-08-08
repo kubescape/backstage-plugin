@@ -9,19 +9,21 @@ exports.up = async function up(knex) {
       table.string('name').notNullable();
       table.string('severity').notNullable();
       table.datetime('created').notNullable();
-      table.decimal('complaince_score').notNullable();
+      table.decimal('compliance_score').notNullable();
+      table.integer('cluster_id').notNullable();
       table.index('control_id')
     });
 
     await knex.schema.createTable('resources', table => {
       // cluster id
       table.increments('id');
-      table.string('resource_id').notNullable();
+      table.text('resource_id').notNullable();
       table.string('name').notNullable();
       table.string('kind').notNullable();
       table.string('namespace');
       table.json('control_list');
       table.datetime('created').notNullable();
+      table.integer('cluster_id').notNullable();
       table.index('resource_id')
     });
   

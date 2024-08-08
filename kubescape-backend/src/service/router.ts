@@ -10,7 +10,7 @@ import { RouterOptions } from '../util/types';
 export async function createRouter(
   options: RouterOptions,
 ): Promise<express.Router> {
-  const { logger, config } = options;
+  const { logger, config, database } = options;
 
   const router = Router();
   router.use(express.json());
