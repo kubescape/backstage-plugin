@@ -10,6 +10,7 @@ export interface SeverityStats {
 }
 
 export interface ResourceDetail {
+  resource_id: string;
   name: string;
   kind: string;
   namespace?: string;
@@ -113,9 +114,7 @@ export function basicScan(database: KubescapeDatabse): BasicScanResponse {
     };
     const resourceID = resource.resourceID;
     const resourceInfo = resourceMap[resourceID];
-    if (resourceInfo === undefined) {
-      console.log(`\n\n${resourceID}`);
-    }
+
     mapping.resource_id = resourceID;
     if ('metadata' in resourceInfo.object) {
       mapping.name = resourceInfo.object.metadata.name;
@@ -128,16 +127,5 @@ export function basicScan(database: KubescapeDatabse): BasicScanResponse {
     resultJSON.resourceDetails.push(mapping);
   }
   database.updateFailedResource(resultJSON.resourceDetails);
-
-  //   mapping.controlScanTime = new Date().toTimeString();
-
-  //   // mapping.name = resourceMap[resource.resourceID].object.metadata.name;
-  //   // mapping.kind = resourceMap[resource.resourceID].object.kind;
-  //   // mapping.namespace =
-  //   //   resourceMap[resource.resourceID].object.metadata.namespace;
-  //   // mapping.controlScanTime = new Date().toTimeString();
-  //
-  // }
-
   return resultJSON;
 }

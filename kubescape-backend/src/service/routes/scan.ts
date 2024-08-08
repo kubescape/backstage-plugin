@@ -28,6 +28,6 @@ export const scanRoutes = (router: Router, options: RouterOptions) => {
     //     cluster_id: 0,
     //   },
     // ]);
-    response.json({ status: 'scan task received', scanResult: '' });
+    response.json({ status: 'scan task received', scanResult: result });
   });
 };

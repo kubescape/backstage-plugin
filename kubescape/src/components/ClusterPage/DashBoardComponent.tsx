@@ -11,7 +11,7 @@ import {
 } from '@material-ui/core';
 import { GaugeCard, InfoCard, TrendLine } from '@backstage/core-components';
 
-export function Dashboard(props) {
+export function Dashboard({ failure_data, nsaScore, mitreScore }) {
   return (
     <Grid container>
       <Grid item>
@@ -20,7 +20,7 @@ export function Dashboard(props) {
           alignGauge="bottom"
           size="small"
           title="NSA Score"
-          progress={0.9}
+          progress={nsaScore}
         />
       </Grid>
       <Grid item>
@@ -29,7 +29,7 @@ export function Dashboard(props) {
           alignGauge="bottom"
           size="small"
           title="MITRE Score"
-          progress={0.6}
+          progress={mitreScore}
         />
       </Grid>
       <Grid item>
@@ -41,7 +41,7 @@ export function Dashboard(props) {
               </TableRow>
             </TableHead>
             <TableBody>
-              {props.failure_data.map(row => (
+              {failure_data.map(row => (
                 <TableRow key={row.type}>
                   <TableCell component="th">{row.type}</TableCell>
                   <TableCell align="right">{row.count}</TableCell>

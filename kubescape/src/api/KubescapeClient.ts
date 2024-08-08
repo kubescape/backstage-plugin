@@ -12,13 +12,14 @@ export interface SeverityStats {
 }
 
 export interface ResourceDetail {
+  resource_id: string;
   name: string;
   kind: string;
   namespace: string;
-  controlScanTime: string;
-  controlStats: SeverityStats;
-  vulnerabilitiesScanTime: string;
-  vulnerabilitiesFindings: SeverityStats;
+  created: Date;
+  controlStats?: SeverityStats;
+  vulnerabilitiesScanTime?: string;
+  vulnerabilitiesFindings?: SeverityStats;
 }
 
 export interface BasicScanResponse {
@@ -31,16 +32,12 @@ export interface BasicScanResponse {
 const baseURL = 'http://localhost:7007/api/kubescape';
 
 export async function getBasicScan(): Promise<BasicScanResponse> {
-  try {
-    const response = await fetch(`${baseURL}/scan`);
-    if (!response.ok) {
-      throw new Error(`Response status: ${response.status}`);
-    }
-    const json = await response.json();
-    console.log(json);
-    return json.scanResult;
-  } catch (error) {
-    console.error(error.message);
-    return {};
+  const response = await fetch(`${baseURL}/scan`);
+  if (!response.ok) {
+    throw new Error(`Response status: ${response.status}`);
   }
+  const json = await response.json();
+  // console.log(json);
+  const result: BasicScanResponse = json.scanResult;
+  return result;
 }

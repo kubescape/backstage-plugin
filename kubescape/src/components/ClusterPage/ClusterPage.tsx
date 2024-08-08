@@ -59,7 +59,7 @@ import {
   VulnerabilitiesSidePanelComponent,
 } from '../SidePanelComponent';
 
-import { getBasicScan } from '../../api/KubescapeClient';
+import { BasicScanResponse, getBasicScan } from '../../api/KubescapeClient';
 
 const useStyles = makeStyles({
   sidePanel: {
@@ -73,16 +73,50 @@ const clusterName = 'Minikube';
 
 const failure_data = [
   { type: 'Critical', count: 0 },
-  { type: 'High', count: 27 },
-  { type: 'Medium', count: 15 },
-  { type: 'Low', count: 1 },
+  { type: 'High', count: 0 },
+  { type: 'Medium', count: 0 },
+  { type: 'Low', count: 0 },
 ];
 
 export function ClusterPage() {
-  const [scanResult, setScanResult] = useState('');
+  // const [scanResult, setScanResult] = useState('');
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [sidePanelType, setSidePanelType] = useState('');
   const [selectedResource, setSelectedResource] = useState<GridRowData>();
+  const [rows, setRows] = useState<GridRowsProp[]>([]);
+  const [nsaScore, setNsaScore] = useState(0);
+  const [mitreScore, setMitreScore] = useState(0);
+
+  const updatePage = () => {
+    let scanResult: BasicScanResponse;
+    getBasicScan().then(data => {
+      scanResult = data;
+      console.log(scanResult);
+      const resourcesResult = scanResult.resourceDetails.map(obj => ({
+        id: obj.resource_id,
+        name: obj.name,
+        kind: obj.kind,
+        namespace: obj.namespace,
+        failedControls: [
+          { key: 'Critical', label: 0 },
+          { key: 'High', label: 0 },
+          { key: 'Medium', label: 0 },
+          { key: 'Low', label: 0 },
+        ],
+        lastControlScan: obj.created,
+        vulnerabilities: [
+          { key: 'Critical', label: 0 },
+          { key: 'High', label: 0 },
+          { key: 'Medium', label: 0 },
+          { key: 'Low', label: 0 },
+        ],
+        lastVulnerabilityScan: date,
+      }));
+      setRows(resourcesResult);
+      setNsaScore(scanResult.nsaScore / 100);
+      setMitreScore(scanResult.mitreScore / 100);
+    });
+  };
 
   const closePanel = () => {
     setSidePanelOpen(false);
@@ -91,28 +125,6 @@ export function ClusterPage() {
 
   const classes = useStyles();
 
-  const resourceRows: GridRowsProp = [
-    {
-      id: 1,
-      name: 'kubernetes-dashboard',
-      kind: 'Deployment',
-      namespace: 'kubernetes-dashboard',
-      failedControls: [
-        { key: 'Critical', label: 0 },
-        { key: 'High', label: 0 },
-        { key: 'Medium', label: 0 },
-        { key: 'Low', label: 0 },
-      ],
-      lastControlScan: date,
-      vulnerabilities: [
-        { key: 'Critical', label: 0 },
-        { key: 'High', label: 0 },
-        { key: 'Medium', label: 0 },
-        { key: 'Low', label: 0 },
-      ],
-      lastVulnerabilityScan: date,
-    },
-  ];
   const resourceColumns: GridColDef[] = [
     { field: 'name', headerName: 'Resource', width: 200 },
     { field: 'kind', headerName: 'Kind', width: 150 },
@@ -192,16 +204,20 @@ export function ClusterPage() {
                 <Button
                   variant="contained"
                   color="primary"
-                  onClick={getBasicScan}
+                  onClick={updatePage}
                 >
                   Compliance Scan
                 </Button>
               </Box>
             </ContentHeader>
           </Grid>
-          <Dashboard failure_data={failure_data} />
+          <Dashboard
+            failure_data={failure_data}
+            nsaScore={nsaScore}
+            mitreScore={mitreScore}
+          />
           <Grid item style={{ height: '70vh' }}>
-            <DataGrid rows={resourceRows} columns={resourceColumns} />
+            <DataGrid rows={rows} columns={resourceColumns} />
           </Grid>
         </Grid>
       </Content>
