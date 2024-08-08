@@ -19,9 +19,14 @@ export class KubescapeDatabse {
       'migrations',
     );
     if (!database.migrations?.skip) {
-      await client.migrate.latest({
-        directory: migrationsDir,
-      });
+      try {
+        await client.migrate.latest({
+          directory: migrationsDir,
+        });
+        console.log('Migrations completed successfully');
+      } catch (error) {
+        console.error('Error running migrations:', error);
+      }
     }
     return new KubescapeDatabse(client);
   }
