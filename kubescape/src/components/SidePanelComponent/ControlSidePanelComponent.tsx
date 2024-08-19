@@ -5,25 +5,34 @@ import {
   HeaderActionMenu,
   Page,
 } from '@backstage/core-components';
-import { Button, Grid, Typography } from '@material-ui/core';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { Button, Grid, Typography, Link } from '@material-ui/core';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import ArrowBackIosIcon from '@material-ui/icons/ArrowBackIos';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import {
+  ControlResponse,
+  getResourceControlList,
+} from '../../api/KubescapeClient';
 
 const columns: GridColDef[] = [
   {
-    field: 'controlID',
+    field: 'control_id',
     headerName: 'Control ID',
     minWidth: 200,
+    renderCell: (params: GridRenderCellParams) => (
+      <Link
+        underline="hover"
+        target="_blank"
+        rel="noopener noreferrer"
+        href={`https://hub.armosec.io/docs/${params.row.control_id.toLowerCase()}`}
+      >
+        <Typography> {params.row.control_id}</Typography>
+      </Link>
+    ),
   },
   {
     field: 'name',
     headerName: 'Name',
-    minWidth: 200,
-  },
-  {
-    field: 'descriptiton',
-    headerName: 'Description',
     minWidth: 400,
   },
   {
@@ -39,9 +48,18 @@ const columns: GridColDef[] = [
 ];
 
 export function ControlSidePanelComponent({ data, operatePanel }) {
+  const [controlRows, setControlRows] = useState<ControlResponse[]>([]);
+
+  useEffect(() => {
+    getResourceControlList(0, data?.id).then(rows => {
+      setControlRows(rows);
+    });
+  }, [data]);
   if (data === undefined) {
     return <div>is loading</div>;
   }
+  // test
+
   return (
     <Page themeId="tool">
       <Header title="Control Detail and Fix" />
@@ -59,7 +77,7 @@ export function ControlSidePanelComponent({ data, operatePanel }) {
           </Grid>
         </Grid>
 
-        <DataGrid rows={[]} columns={columns} />
+        <DataGrid autoHeight rows={controlRows} columns={columns} />
       </Content>
     </Page>
   );

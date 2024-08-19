@@ -4,25 +4,7 @@ import {
 } from '@backstage/backend-plugin-api';
 
 import { Client, Knex } from 'knex';
-
-export interface Control {
-  created: Date;
-  name: string;
-  control_id: string;
-  severity: string;
-  compliance_score: number;
-  cluster_id: number;
-}
-
-export interface Resource {
-  created: Date;
-  resource_id: string;
-  name: string;
-  kind: string;
-  namespace: string;
-  cluster_id?: number;
-  control_list?: string[];
-}
+import { Resource, Control, SeverityItem } from '../util/types';
 
 export class KubescapeDatabse {
   private readonly db: Knex;
@@ -63,5 +45,32 @@ export class KubescapeDatabse {
   async updateControls(newControls: Control[]) {
     await this.db('controls').where('cluster_id', 0).del();
     await this.db.insert(newControls, ['id']).into('controls');
+  }
+
+  async getResourceList(cluster_id: number): Promise<Resource[]> {
+    const result: Resource[] = await this.db('resources')
+      .where('cluster_id', cluster_id)
+      .select();
+    return result;
+  }
+
+  async getControlsByResource(
+    cluster_id: number,
+    resource_id: string,
+  ): Promise<Control[] | undefined> {
+    const resource: Resource = await this.db('resources')
+      .where('cluster_id', cluster_id)
+      .where('resource_id', resource_id)
+      .first();
+    if (resource === undefined) {
+      return undefined;
+    }
+    const controlRows: Control[] = await this.db('controls')
+      .where('cluster_id', cluster_id)
+      .whereIn(
+        'control_id',
+        (resource.control_list as SeverityItem[]).map(obj => obj.id),
+      );
+    return controlRows;
   }
 }

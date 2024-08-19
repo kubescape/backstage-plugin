@@ -1,47 +1,21 @@
 /* eslint-disable no-console */
 import React, { PropsWithChildren, useEffect, useState } from 'react';
-import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import {
   Box,
   Button,
   ButtonBase,
-  Card,
-  CardContent,
-  CardHeader,
-  Container,
-  Divider,
   Grid,
-  List,
-  ListItem,
-  ListItemText,
-  Paper,
   Typography,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
   Breadcrumbs,
   Drawer,
   makeStyles,
 } from '@material-ui/core';
 import {
-  CardTab,
   Content,
   ContentHeader,
-  GaugeCard,
   Header,
-  InfoCard,
   Page,
-  StatusAborted,
-  StatusError,
-  StatusOK,
-  StatusPending,
-  StatusRunning,
-  StatusWarning,
-  TabbedCard,
-  TabbedLayout,
-  TrendLine,
 } from '@backstage/core-components';
 import {
   DataGrid,
@@ -49,6 +23,7 @@ import {
   GridColDef,
   GridRenderCellParams,
   GridRowData,
+  GridComparatorFn,
 } from '@mui/x-data-grid';
 import NavigateNextIcon from '@material-ui/icons/NavigateNext';
 import { Dashboard } from './DashBoardComponent';
@@ -59,7 +34,11 @@ import {
   VulnerabilitiesSidePanelComponent,
 } from '../SidePanelComponent';
 
-import { BasicScanResponse, getBasicScan } from '../../api/KubescapeClient';
+import {
+  BasicScanResponse,
+  getBasicScan,
+  ResourceDetail,
+} from '../../api/KubescapeClient';
 
 const useStyles = makeStyles({
   sidePanel: {
@@ -67,7 +46,6 @@ const useStyles = makeStyles({
   },
 });
 
-const baseURL = 'http://localhost:7007/api/kubescape';
 const date = new Date();
 const clusterName = 'Minikube';
 
@@ -78,6 +56,17 @@ const failure_data = [
   { type: 'Low', count: 0 },
 ];
 
+// compare failed controls or vulnerabilities findings
+const severityComparator: GridComparatorFn = (
+  v1: ChipData[],
+  v2: ChipData[],
+) => {
+  return (
+    v1.reduce((acc, curr) => acc + curr.label, 0) -
+    v2.reduce((acc, curr) => acc + curr.label, 0)
+  );
+};
+
 export function ClusterPage() {
   // const [scanResult, setScanResult] = useState('');
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
@@ -87,30 +76,49 @@ export function ClusterPage() {
   const [nsaScore, setNsaScore] = useState(0);
   const [mitreScore, setMitreScore] = useState(0);
 
+  const parseSeverityInfo = controls => {
+    const mapping = {
+      SeverityCritical: { key: 'Critical', label: 0 },
+      SeverityHigh: { key: 'High', label: 0 },
+      SeverityMedium: { key: 'Medium', label: 0 },
+      SeverityLow: { key: 'Low', label: 0 },
+    };
+    let changed = false;
+    for (const control of controls) {
+      if (control.severity in mapping) {
+        mapping[control.severity].label += 1;
+        changed = true;
+      }
+    }
+    const severityResult = Object.entries(mapping).map(([key, value]) => ({
+      key: value.key,
+      label: value.label,
+    }));
+    if (changed) {
+      console.log(severityResult);
+    }
+
+    return severityResult;
+  };
+
   const updatePage = () => {
     let scanResult: BasicScanResponse;
     getBasicScan().then(data => {
       scanResult = data;
-      console.log(scanResult);
       const resourcesResult = scanResult.resourceDetails.map(obj => ({
         id: obj.resource_id,
         name: obj.name,
         kind: obj.kind,
         namespace: obj.namespace,
-        failedControls: [
-          { key: 'Critical', label: 0 },
-          { key: 'High', label: 0 },
-          { key: 'Medium', label: 0 },
-          { key: 'Low', label: 0 },
-        ],
-        lastControlScan: obj.created,
+        failedControls: parseSeverityInfo(obj.control_list),
+        lastControlScan: obj.controlScanDate,
         vulnerabilities: [
           { key: 'Critical', label: 0 },
           { key: 'High', label: 0 },
           { key: 'Medium', label: 0 },
           { key: 'Low', label: 0 },
         ],
-        lastVulnerabilityScan: date,
+        // lastVulnerabilityScan: date,
       }));
       setRows(resourcesResult);
       setNsaScore(scanResult.nsaScore / 100);
@@ -126,13 +134,32 @@ export function ClusterPage() {
   const classes = useStyles();
 
   const resourceColumns: GridColDef[] = [
-    { field: 'name', headerName: 'Resource', width: 200 },
+    {
+      field: 'name',
+      headerName: 'Resource',
+      width: 200,
+      renderCell: params => (
+        <Typography style={{ whiteSpace: 'normal', wordWrap: 'break-word' }}>
+          {params.value}
+        </Typography>
+      ),
+    },
     { field: 'kind', headerName: 'Kind', width: 150 },
-    { field: 'namespace', headerName: 'Namespace', width: 160 },
+    {
+      field: 'namespace',
+      headerName: 'Namespace',
+      width: 200,
+      renderCell: params => (
+        <Typography style={{ whiteSpace: 'normal', wordWrap: 'break-word' }}>
+          {params.value}
+        </Typography>
+      ),
+    },
     {
       field: 'failedControls',
       headerName: 'Failed Control Status',
       width: 305,
+      sortComparator: severityComparator,
       renderCell: (params: GridRenderCellParams) => (
         <ButtonBase
           onClick={() => {
@@ -157,6 +184,7 @@ export function ClusterPage() {
       field: 'vulnerabilities',
       headerName: 'Vulnerabilities Finding',
       width: 305,
+      sortComparator: severityComparator,
       renderCell: (params: GridRenderCellParams) => (
         <ButtonBase
           onClick={() => {
@@ -217,7 +245,12 @@ export function ClusterPage() {
             mitreScore={mitreScore}
           />
           <Grid item style={{ height: '70vh' }}>
-            <DataGrid rows={rows} columns={resourceColumns} />
+            <DataGrid
+              autoHeight
+              rows={rows}
+              columns={resourceColumns}
+              sortModel={[{ field: 'failedControls', sort: 'desc' }]}
+            />
           </Grid>
         </Grid>
       </Content>

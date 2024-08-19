@@ -20,13 +20,14 @@ exports.up = async function up(knex) {
       table.text('resource_id').notNullable();
       table.string('name').notNullable();
       table.string('kind').notNullable();
-      table.string('namespace');
-      table.json('control_list');
-      table.datetime('created').notNullable();
+      table.string('namespace').notNullable();
+      table.json('control_list').notNullable();
+      table.datetime('controlScanDate').notNullable();
+      table.json('CVE_list').notNullable();
+      table.dateTime('imageScanDate')
       table.integer('cluster_id').notNullable();
       table.index('resource_id')
     });
-  
   };
   
   /**
