@@ -2,12 +2,14 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import { KubescapeDatabse } from '../../database/KubescapeDatabase';
 import { Control, Resource, SeverityItem } from '../../util/types';
+import { raw } from 'express';
 
 export interface SeverityStats {
   criticalSeverity: number;
   highSeverity: number;
   mediumSeverity: number;
-  lowSeverity: number;
+  lowSeverity?: number;
+  unknownSeverity: number;
 }
 
 export interface ResourceDetail {
@@ -36,18 +38,18 @@ export interface BasicScanResponse {
   resourceDetails: ResourceDetail[];
 }
 
-export function basicScanHTML(): string {
-  const output = execSync(
-    // 'kubescape scan --format json --format-version v2 --output results.json',
-    'kubescape scan --format html --output results.html',
-    { encoding: 'utf-8' },
-  ).toString(); // the default is 'buffer'
-  console.log('Output was:\n', output);
-  const data = fs.readFileSync('./results.html', {
-    encoding: 'utf8',
-    flag: 'r',
-  });
-  return data;
+export interface VulnerabilitiesInfo {
+  severity: string;
+  vulnerabilities_id: string;
+  package: string;
+  version: string;
+  fixVersions: string[];
+  fixedState: string;
+}
+
+export interface WorkloadScanResponse {
+  totalVulnerabilities: SeverityStats;
+  vulnerabilities: VulnerabilitiesInfo[];
 }
 
 function getSeverity(baseScore: number): string {
@@ -64,6 +66,64 @@ function getSeverity(baseScore: number): string {
     return 'SeverityLow';
   }
   return 'SeverityUnknown';
+}
+
+// failure
+export async function workloadScan(
+  database: KubescapeDatabse,
+  namespace: string,
+  kind: string,
+  name: string,
+  resource_id: string,
+): Promise<WorkloadScanResponse> {
+  const outputName = `workload_scan_${resource_id.replace(
+    /\//g,
+    '_',
+  )}_${Date.now()}.json`;
+  console.log(outputName);
+  execSync(
+    `kubescape scan workload --namespace ${namespace} ${kind}/${name} --format json --output ./kubescapeScanResult/${outputName}`,
+  );
+  // baseurl https://github.com/advisories/GHSA-hqxw-f8mx-cpmw
+
+  const data = fs.readFileSync(`./kubescapeScanResult/${outputName}`, {
+    encoding: 'utf8',
+    flag: 'r',
+  });
+  const rawJson = JSON.parse(data);
+  const vulnerabilitiesFindings = {
+    SeverityCritical:
+      rawJson.summaryDetails.vulnerabilities.mapsSeverityToSummary.Critical
+        .numberOfCVEs,
+    SeverityHigh:
+      rawJson.summaryDetails.vulnerabilities.mapsSeverityToSummary.High
+        .numberOfCVEs,
+    SeverityMedium:
+      rawJson.summaryDetails.vulnerabilities.mapsSeverityToSummary.Medium
+        .numberOfCVEs,
+    SeverityUnknown:
+      rawJson.summaryDetails.vulnerabilities.mapsSeverityToSummary.Unknown
+        .numberOfCVEs,
+  };
+  const CVE_list = rawJson.summaryDetails.vulnerabilities.CVEs.map(obj => ({
+    severity: obj.severity,
+    vulnerabilities_id: obj.id,
+    package: obj.package,
+    version: obj.version,
+    fixVersions: JSON.stringify(obj.fixVersions),
+    fixedState: obj.fixedState,
+    resource_id: resource_id,
+  }));
+  fs.unlink(`./kubescapeScanResult/${outputName}`, err => {
+    if (err) {
+      console.error(`Error removing file: ${err}`);
+      return;
+    }
+  });
+  return {
+    totalVulnerabilities: vulnerabilitiesFindings,
+    vulnerabilities: CVE_list,
+  };
 }
 
 export async function basicScan(

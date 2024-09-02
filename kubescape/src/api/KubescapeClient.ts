@@ -8,7 +8,13 @@ export interface SeverityStats {
   criticalSeverity: number;
   highSeverity: number;
   mediumSeverity: number;
-  lowSeverity: number;
+  lowSeverity?: number;
+  unknownSeverity: number;
+}
+
+export interface SeverityLabel {
+  key: string;
+  label: number;
 }
 
 export interface ResourceDetail {
@@ -19,6 +25,7 @@ export interface ResourceDetail {
   controlScanDate: Date;
   cluster_id: number;
   controlStats?: SeverityStats;
+  control_list: SeverityLabel[];
   imageScanDate?: Date;
   vulnerabilitiesFindings?: SeverityStats;
 }
@@ -52,11 +59,11 @@ export async function getBasicScan(): Promise<BasicScanResponse> {
 }
 
 export async function getResourceControlList(
-  cluster_id: number,
-  resource_id: string,
+  clusterId: number,
+  resourceId: string,
 ): Promise<ControlResponse[]> {
   const response = await fetch(
-    `${baseURL}/resourceControls?cluster_id=${cluster_id}&resource_id=${resource_id}`,
+    `${baseURL}/resourceControls?cluster_id=${clusterId}&resource_id=${resourceId}`,
   );
   if (!response.ok) {
     throw new Error(`Response status: ${response.status}`);
@@ -64,4 +71,36 @@ export async function getResourceControlList(
   const json = await response.json();
   const result: ControlResponse[] = json.result;
   return result;
+}
+
+export async function getWorkloadVulnerabilities(
+  namespace: string,
+  type: string,
+  name: string,
+  resource_id: string,
+) {
+  console.log(
+    `${baseURL}/workloadScan?namespace=${namespace}&name=${name}&kind=${type}&resource_id=${resource_id}`,
+  );
+  const response = await fetch(
+    `${baseURL}/workloadScan?namespace=${namespace}&name=${name}&kind=${type}&resource_id=${resource_id}`,
+    {
+      method: 'GET',
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Response status: ${response.status}`);
+  }
+  const json = await response.json();
+  const result: SeverityStats = json.result;
+  return result;
+}
+
+export async function addCluster(clusterName: string, config: string) {
+  const response = await fetch(`${baseURL}/addCluster`, {
+    method: 'POST',
+    body: JSON.stringify({ name: clusterName, config: config }),
+  });
+
+  return response.json().result;
 }

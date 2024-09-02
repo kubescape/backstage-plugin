@@ -1,11 +1,18 @@
 import { Router, Request } from 'express';
 import { Control, RouterOptions } from '../../util/types';
-import { basicScan } from './scan.service';
+import { basicScan, workloadScan } from './scan.service';
 
 interface UserQuery {
   cluster_id?: number;
   resource_id?: string;
   control_id?: string;
+}
+
+interface WorkloadScan {
+  namespace?: string;
+  name?: string;
+  kind?: string;
+  resource_id: string;
 }
 
 export const scanRoutes = (router: Router, options: RouterOptions) => {
@@ -29,6 +36,28 @@ export const scanRoutes = (router: Router, options: RouterOptions) => {
       database.getControlsByResource(cluster_id, resource_id).then(data => {
         response.status(200).json({ result: data });
       });
+      return response;
+    },
+  );
+
+  router.get(
+    '/workloadScan',
+    (request: Request<{}, {}, {}, WorkloadScan>, response) => {
+      const namespace = request.query.namespace as string;
+      const name = request.query.name as string;
+      const kind = request.query.kind as string;
+      const resource_id = request.query.resource_id as string;
+      workloadScan(database, namespace, kind, name, resource_id).then(
+        scanResult => {
+          database.updateResourceVulnerabilities(
+            resource_id,
+            scanResult.vulnerabilities,
+          );
+          response
+            .status(200)
+            .json({ result: scanResult.totalVulnerabilities });
+        },
+      );
       return response;
     },
   );

@@ -4,7 +4,9 @@ import {
 } from '@backstage/backend-plugin-api';
 
 import { Client, Knex } from 'knex';
-import { Resource, Control, SeverityItem } from '../util/types';
+import { Resource, Control, SeverityItem, Cluster } from '../util/types';
+import { config } from 'winston';
+import { VulnerabilitiesInfo } from '../service/routes/scan.service';
 
 export class KubescapeDatabse {
   private readonly db: Knex;
@@ -72,5 +74,34 @@ export class KubescapeDatabse {
         (resource.control_list as SeverityItem[]).map(obj => obj.id),
       );
     return controlRows;
+  }
+
+  async updateResourceVulnerabilities(
+    resource_id: string,
+    vulnerabilities: VulnerabilitiesInfo[],
+  ) {
+    await this.db('vulnerabilities').where('resource_id', resource_id).del();
+    // console.log(vulnerabilities);s
+    await this.db.insert(vulnerabilities, ['id']).into('vulnerabilities');
+  }
+
+  async addCluster(
+    cluster_name: string,
+    cluster_config: string,
+  ): Promise<string> {
+    if (
+      (await this.db('clusters').where('name', cluster_name).first()) !==
+      undefined
+    ) {
+      return 'Name already used';
+    }
+    await this.db
+      .insert({ name: cluster_name, kubeconf: cluster_config }, ['id'])
+      .into('clusters');
+    return 'success';
+  }
+
+  async getClusterList(): Promise<Cluster[]> {
+    return await this.db('clusters').select();
   }
 }

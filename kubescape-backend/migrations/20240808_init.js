@@ -2,6 +2,13 @@
  * @param {import('knex').Knex} knex
  */
 exports.up = async function up(knex) {
+    await knex.schema.createTable('clusters', table => {
+      table.increments('id');
+      table.string('name').notNullable()
+      table.text('kubeconf').notNullable()
+      table.index('name')
+    });
+
     await knex.schema.createTable('controls', table => {
       // cluster id, resources
       table.increments('id');
@@ -28,6 +35,18 @@ exports.up = async function up(knex) {
       table.integer('cluster_id').notNullable();
       table.index('resource_id')
     });
+
+    await knex.schema.createTable('vulnerabilities', table => {
+      // cluster id
+      table.increments('id');
+      table.text('resource_id').notNullable()
+      table.string('vulnerabilities_id').notNullable();
+      table.string('severity').notNullable();
+      table.string('package').notNullable();
+      table.string('version').notNullable();
+      table.json('fixVersions').notNullable();
+      table.string('fixedState').notNullable();
+    });
   };
   
   /**
@@ -36,5 +55,7 @@ exports.up = async function up(knex) {
   exports.down = async function down(knex) {
     await knex.schema.dropTable('controls');
     await knex.schema.dropTable('resources');
+    await knex.schema.dropTable('clusters');
+    await knex.schema.dropTable('vulnerabilities');
   };
   

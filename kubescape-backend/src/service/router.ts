@@ -6,6 +6,7 @@ import Router from 'express-promise-router';
 import { basicScan } from './routes/scan.service';
 import { scanRoutes } from './routes/scan';
 import { RouterOptions } from '../util/types';
+import { clusterRoutes } from './routes/cluster';
 
 export async function createRouter(
   options: RouterOptions,
@@ -21,6 +22,7 @@ export async function createRouter(
   });
 
   scanRoutes(router, options);
+  clusterRoutes(router, options);
 
   const middleware = MiddlewareFactory.create({ logger, config });
   router.use(middleware.error());

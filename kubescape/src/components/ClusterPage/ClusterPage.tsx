@@ -37,8 +37,10 @@ import {
 import {
   BasicScanResponse,
   getBasicScan,
+  getWorkloadVulnerabilities,
   ResourceDetail,
 } from '../../api/KubescapeClient';
+import { ResourecesWithImage } from '../../utils/constants';
 
 const useStyles = makeStyles({
   sidePanel: {
@@ -75,31 +77,53 @@ export function ClusterPage() {
   const [rows, setRows] = useState<GridRowsProp[]>([]);
   const [nsaScore, setNsaScore] = useState(0);
   const [mitreScore, setMitreScore] = useState(0);
+  const [totalFailedControl, setTotalFailedControl] = useState(failure_data);
 
-  const parseSeverityInfo = controls => {
-    const mapping = {
-      SeverityCritical: { key: 'Critical', label: 0 },
-      SeverityHigh: { key: 'High', label: 0 },
-      SeverityMedium: { key: 'Medium', label: 0 },
-      SeverityLow: { key: 'Low', label: 0 },
-    };
-    let changed = false;
+  const parseSeverityInfo = (controls, type: 'control' | 'vulnerability') => {
+    let mapping = {};
+    if (type === 'control') {
+      mapping = {
+        SeverityCritical: { key: 'critical', label: 0 },
+        SeverityHigh: { key: 'high', label: 0 },
+        SeverityMedium: { key: 'medium', label: 0 },
+        SeverityLow: { key: 'low', label: 0 },
+      };
+    } else {
+      mapping = {
+        SeverityCritical: { key: 'critical', label: 0 },
+        SeverityHigh: { key: 'high', label: 0 },
+        SeverityMedium: { key: 'medium', label: 0 },
+        SeverityUnknown: { key: 'low', label: 0 },
+      };
+    }
+
     for (const control of controls) {
       if (control.severity in mapping) {
         mapping[control.severity].label += 1;
-        changed = true;
       }
     }
     const severityResult = Object.entries(mapping).map(([key, value]) => ({
       key: value.key,
       label: value.label,
     }));
-    if (changed) {
-      console.log(severityResult);
-    }
 
     return severityResult;
   };
+
+  function scanWorkload(
+    resource_id: string,
+    name: string,
+    kind: string,
+    namespace: string,
+  ) {
+    getWorkloadVulnerabilities(namespace, kind, name, resource_id).then(
+      data => {
+        console.log(data);
+        console.log(rows);
+        setRows(rows);
+      },
+    );
+  }
 
   const updatePage = () => {
     let scanResult: BasicScanResponse;
@@ -110,19 +134,25 @@ export function ClusterPage() {
         name: obj.name,
         kind: obj.kind,
         namespace: obj.namespace,
-        failedControls: parseSeverityInfo(obj.control_list),
+        failedControls: parseSeverityInfo(obj.control_list, 'control'),
         lastControlScan: obj.controlScanDate,
-        vulnerabilities: [
-          { key: 'Critical', label: 0 },
-          { key: 'High', label: 0 },
-          { key: 'Medium', label: 0 },
-          { key: 'Low', label: 0 },
-        ],
+        // vulnerabilities: [
+        //   { key: 'Critical', label: 0 },
+        //   { key: 'High', label: 0 },
+        //   { key: 'Medium', label: 0 },
+        //   { key: 'Low', label: 0 },
+        // ],
         // lastVulnerabilityScan: date,
       }));
       setRows(resourcesResult);
       setNsaScore(scanResult.nsaScore / 100);
       setMitreScore(scanResult.mitreScore / 100);
+      setTotalFailedControl(
+        Object.entries(scanResult.totalControlFailure).map(([key, value]) => ({
+          type: key.replace('Severity', ''),
+          count: value,
+        })),
+      );
     });
   };
 
@@ -185,17 +215,22 @@ export function ClusterPage() {
       headerName: 'Vulnerabilities Finding',
       width: 305,
       sortComparator: severityComparator,
-      renderCell: (params: GridRenderCellParams) => (
-        <ButtonBase
-          onClick={() => {
-            setSelectedResource(params.row);
-            setSidePanelType('Vulnerabilities');
-            setSidePanelOpen(true);
-          }}
-        >
-          <SeverityDisplayComponent data={params.value as ChipData[]} />
-        </ButtonBase>
-      ),
+      renderCell: (params: GridRenderCellParams) => {
+        if (params.row.kind in ResourecesWithImage) {
+          return (
+            <ButtonBase
+              onClick={() => {
+                setSelectedResource(params.row);
+                setSidePanelType('Vulnerabilities');
+                setSidePanelOpen(true);
+              }}
+            >
+              <SeverityDisplayComponent data={params.value as ChipData[]} />
+            </ButtonBase>
+          );
+        }
+        return <Typography>Resource has no image</Typography>;
+      },
     },
     {
       field: 'lastVulnerabilityScan',
@@ -209,7 +244,32 @@ export function ClusterPage() {
       field: 'vulnerabilitiesScan',
       headerName: ' Vulnerabilities Scan',
       width: 200,
-      renderCell: () => <Button variant="contained">Scan</Button>,
+      renderCell: (params: GridRenderCellParams) => {
+        if (params.row.kind in ResourecesWithImage) {
+          return (
+            <Button
+              variant="contained"
+              onClick={() => {
+                console.log('begin scanning workload');
+                console.log(params.row.kind);
+                scanWorkload(
+                  params.row.id,
+                  params.row.name,
+                  params.row.kind,
+                  params.row.namespace,
+                );
+              }}
+            >
+              Scan
+            </Button>
+          );
+        }
+        return (
+          <Button variant="contained" disabled>
+            Scan
+          </Button>
+        );
+      },
     },
   ];
   return (
@@ -240,13 +300,13 @@ export function ClusterPage() {
             </ContentHeader>
           </Grid>
           <Dashboard
-            failure_data={failure_data}
+            failure_data={totalFailedControl}
             nsaScore={nsaScore}
             mitreScore={mitreScore}
           />
           <Grid item style={{ height: '70vh' }}>
             <DataGrid
-              autoHeight
+              pageSize={20}
               rows={rows}
               columns={resourceColumns}
               sortModel={[{ field: 'failedControls', sort: 'desc' }]}

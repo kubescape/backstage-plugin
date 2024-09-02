@@ -29,6 +29,11 @@ export interface Resource {
   cluster_id: number;
 }
 
+export interface Cluster {
+  name: string;
+  kubeconf: string;
+}
+
 export interface SeverityItem {
   name: string;
   id: string;

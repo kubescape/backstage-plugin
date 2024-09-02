@@ -8,9 +8,17 @@ import {
   Table,
   TableColumn,
 } from '@backstage/core-components';
-import { Box, Button, Typography } from '@material-ui/core';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Typography,
+} from '@material-ui/core';
 import { useNavigate } from 'react-router-dom';
-import React from 'react';
+import React, { useState } from 'react';
 import { SeverityDisplayComponent } from '../SeverityDisplayComponent';
 import { ChipData } from '../SeverityDisplayComponent/SeverityDisplayComponent';
 import {
@@ -20,8 +28,19 @@ import {
   GridRowProps,
   GridRowsProp,
 } from '@mui/x-data-grid';
+import { AddClusterForm } from './AddClusterFormComponent';
 
 export function LandingPage() {
+  const [formOpen, setFormOpen] = useState(false);
+
+  const handleClickOpen = () => {
+    setFormOpen(true);
+  };
+
+  const handleClose = () => {
+    setFormOpen(false);
+  };
+
   const navigate = useNavigate();
   const goToCluster = source => {
     navigate('../cluster', { state: { from: source } });
@@ -92,12 +111,12 @@ export function LandingPage() {
       </Header>
       <Content>
         <ContentHeader title="Landing Page">
-          <Button variant="contained" color="primary">
+          <Button variant="contained" color="primary" onClick={handleClickOpen}>
             Add Cluster
           </Button>
           <SupportButton>A description of your plugin goes here.</SupportButton>
         </ContentHeader>
-
+        <AddClusterForm formOpen={formOpen} handleClose={handleClose} />
         <DataGrid columns={columns} rows={placeholderData} />
       </Content>
     </Page>
