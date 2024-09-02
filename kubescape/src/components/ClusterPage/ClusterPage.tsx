@@ -79,7 +79,7 @@ export function ClusterPage() {
   const [mitreScore, setMitreScore] = useState(0);
   const [totalFailedControl, setTotalFailedControl] = useState(failure_data);
 
-  const parseSeverityInfo = (controls, type: 'control' | 'vulnerability') => {
+  const parseSeverityInfo = (stats, type: 'control' | 'vulnerability') => {
     let mapping = {};
     if (type === 'control') {
       mapping = {
@@ -97,9 +97,9 @@ export function ClusterPage() {
       };
     }
 
-    for (const control of controls) {
-      if (control.severity in mapping) {
-        mapping[control.severity].label += 1;
+    for (const item of stats) {
+      if (item.severity in mapping) {
+        mapping[item.severity].label += 1;
       }
     }
     const severityResult = Object.entries(mapping).map(([key, value]) => ({
@@ -136,12 +136,7 @@ export function ClusterPage() {
         namespace: obj.namespace,
         failedControls: parseSeverityInfo(obj.control_list, 'control'),
         lastControlScan: obj.controlScanDate,
-        // vulnerabilities: [
-        //   { key: 'Critical', label: 0 },
-        //   { key: 'High', label: 0 },
-        //   { key: 'Medium', label: 0 },
-        //   { key: 'Low', label: 0 },
-        // ],
+        // vulnerabilities: parseSeverityInfo(obj.CVE_list, 'vulnerability'),
         // lastVulnerabilityScan: date,
       }));
       setRows(resourcesResult);

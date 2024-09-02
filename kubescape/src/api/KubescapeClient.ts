@@ -27,7 +27,7 @@ export interface ResourceDetail {
   controlStats?: SeverityStats;
   control_list: SeverityLabel[];
   imageScanDate?: Date;
-  vulnerabilitiesFindings?: SeverityStats;
+  CVE_list?: SeverityStats;
 }
 
 export interface BasicScanResponse {
