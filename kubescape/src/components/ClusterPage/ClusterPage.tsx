@@ -24,6 +24,7 @@ import {
   GridRenderCellParams,
   GridRowData,
   GridComparatorFn,
+  GridSortModel,
 } from '@mui/x-data-grid';
 import NavigateNextIcon from '@material-ui/icons/NavigateNext';
 import { Dashboard } from './DashBoardComponent';
@@ -37,8 +38,10 @@ import {
 import {
   BasicScanResponse,
   getBasicScan,
-  getWorkloadVulnerabilities,
+  getCompliancScan,
+  getResourceList,
   ResourceDetail,
+  scanWorkloadVulnerabilities,
 } from '../../api/KubescapeClient';
 import { ResourecesWithImage } from '../../utils/constants';
 
@@ -63,10 +66,15 @@ const severityComparator: GridComparatorFn = (
   v1: ChipData[],
   v2: ChipData[],
 ) => {
-  return (
-    v1.reduce((acc, curr) => acc + curr.label, 0) -
-    v2.reduce((acc, curr) => acc + curr.label, 0)
-  );
+  const v1Value =
+    typeof v1 === 'undefined'
+      ? 0
+      : v1.reduce((acc, curr) => acc + curr.label, 0);
+  const v2Value =
+    typeof v2 === 'undefined'
+      ? 0
+      : v2.reduce((acc, curr) => acc + curr.label, 0);
+  return v1Value - v2Value;
 };
 
 export function ClusterPage() {
@@ -78,24 +86,25 @@ export function ClusterPage() {
   const [nsaScore, setNsaScore] = useState(0);
   const [mitreScore, setMitreScore] = useState(0);
   const [totalFailedControl, setTotalFailedControl] = useState(failure_data);
+  const [sortModel, setSortModel] = useState<GridSortModel>([
+    { field: 'failedControls', sort: 'desc' },
+  ]);
 
   const parseSeverityInfo = (stats, type: 'control' | 'vulnerability') => {
-    let mapping = {};
-    if (type === 'control') {
-      mapping = {
-        SeverityCritical: { key: 'critical', label: 0 },
-        SeverityHigh: { key: 'high', label: 0 },
-        SeverityMedium: { key: 'medium', label: 0 },
-        SeverityLow: { key: 'low', label: 0 },
-      };
-    } else {
-      mapping = {
-        SeverityCritical: { key: 'critical', label: 0 },
-        SeverityHigh: { key: 'high', label: 0 },
-        SeverityMedium: { key: 'medium', label: 0 },
-        SeverityUnknown: { key: 'low', label: 0 },
-      };
+    if (stats === null) return undefined;
+    if (type === 'vulnerability') {
+      return Object.entries(stats).map(([severity, value]) => ({
+        key: severity.replace('Severity', '').toLowerCase(),
+        label: value,
+      }));
     }
+
+    const mapping = {
+      critical: { key: 'critical', label: 0 },
+      high: { key: 'high', label: 0 },
+      medium: { key: 'medium', label: 0 },
+      low: { key: 'low', label: 0 },
+    };
 
     for (const item of stats) {
       if (item.severity in mapping) {
@@ -110,46 +119,55 @@ export function ClusterPage() {
     return severityResult;
   };
 
-  function scanWorkload(
-    resource_id: string,
-    name: string,
-    kind: string,
-    namespace: string,
-  ) {
-    getWorkloadVulnerabilities(namespace, kind, name, resource_id).then(
-      data => {
-        console.log(data);
-        console.log(rows);
-        setRows(rows);
-      },
-    );
-  }
-
   const updatePage = () => {
-    let scanResult: BasicScanResponse;
-    getBasicScan().then(data => {
-      scanResult = data;
-      const resourcesResult = scanResult.resourceDetails.map(obj => ({
-        id: obj.resource_id,
+    console.log('fetch data from backend');
+    getResourceList(0).then(result => {
+      console.log('fetched resources from backend');
+      if (result === undefined) {
+        return;
+      }
+      const resourcesResult = result.resourceDetails.map(obj => ({
+        id: obj.resourceID,
         name: obj.name,
         kind: obj.kind,
         namespace: obj.namespace,
-        failedControls: parseSeverityInfo(obj.control_list, 'control'),
+        failedControls: parseSeverityInfo(obj.controlList, 'control'),
         lastControlScan: obj.controlScanDate,
-        // vulnerabilities: parseSeverityInfo(obj.CVE_list, 'vulnerability'),
-        // lastVulnerabilityScan: date,
+        vulnerabilities: parseSeverityInfo(obj.imageSummary, 'vulnerability'),
+        lastVulnerabilityScan: obj.imageScanDate,
       }));
       setRows(resourcesResult);
-      setNsaScore(scanResult.nsaScore / 100);
-      setMitreScore(scanResult.mitreScore / 100);
+      setNsaScore(result.nsaScore / 100);
+      setMitreScore(result.mitreScore / 100);
       setTotalFailedControl(
-        Object.entries(scanResult.totalControlFailure).map(([key, value]) => ({
+        Object.entries(result.totalControlFailure).map(([key, value]) => ({
           type: key.replace('Severity', ''),
           count: value,
         })),
       );
     });
   };
+
+  function scanWorkload(
+    resource_id: string,
+    name: string,
+    kind: string,
+    namespace: string,
+  ) {
+    scanWorkloadVulnerabilities(namespace, kind, name, resource_id).then(
+      data => {
+        console.log(data);
+        updatePage();
+      },
+    );
+  }
+
+  useEffect(() => {
+    console.log('page reload');
+    updatePage();
+    const intervalId = setInterval(updatePage, 5000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   const closePanel = () => {
     setSidePanelOpen(false);
@@ -200,15 +218,15 @@ export function ClusterPage() {
     {
       field: 'lastControlScan',
       headerName: 'Last Control Scan',
-      width: 200,
+      width: 230,
       valueFormatter: params => {
-        return params.value?.toLocaleString();
+        return new Date(params.value).toUTCString();
       },
     },
     {
       field: 'vulnerabilities',
       headerName: 'Vulnerabilities Finding',
-      width: 305,
+      width: 345,
       sortComparator: severityComparator,
       renderCell: (params: GridRenderCellParams) => {
         if (params.row.kind in ResourecesWithImage) {
@@ -230,9 +248,11 @@ export function ClusterPage() {
     {
       field: 'lastVulnerabilityScan',
       headerName: 'Last Vulnerabilities Scan',
-      width: 200,
+      width: 230,
       valueFormatter: params => {
-        return params.value?.toLocaleString();
+        return params.value !== null
+          ? new Date(params.value).toUTCString()
+          : undefined;
       },
     },
     {
@@ -246,7 +266,6 @@ export function ClusterPage() {
               variant="contained"
               onClick={() => {
                 console.log('begin scanning workload');
-                console.log(params.row.kind);
                 scanWorkload(
                   params.row.id,
                   params.row.name,
@@ -287,7 +306,7 @@ export function ClusterPage() {
                 <Button
                   variant="contained"
                   color="primary"
-                  onClick={updatePage}
+                  onClick={() => getCompliancScan(0)}
                 >
                   Compliance Scan
                 </Button>
@@ -304,7 +323,14 @@ export function ClusterPage() {
               pageSize={20}
               rows={rows}
               columns={resourceColumns}
-              sortModel={[{ field: 'failedControls', sort: 'desc' }]}
+              sortModel={sortModel}
+              onSortModelChange={model => {
+                if (JSON.stringify(model) !== JSON.stringify(sortModel)) {
+                  setSortModel(model);
+                }
+                // console.log('sort model change');
+                // setSortModel(model);
+              }}
             />
           </Grid>
         </Grid>

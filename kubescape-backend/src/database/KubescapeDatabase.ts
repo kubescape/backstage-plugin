@@ -7,6 +7,55 @@ import { Client, Knex } from 'knex';
 import { Resource, Control, SeverityItem, Cluster } from '../util/types';
 import { config } from 'winston';
 import { VulnerabilitiesInfo } from '../service/routes/scan.service';
+import { json } from 'express';
+
+export interface SeveritySummary {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  unknown: number;
+}
+
+export interface DBCluster {
+  name: string;
+  kubeconf: object;
+  nsaScore: number;
+  mitreScore: number;
+  history: SeveritySummary[];
+}
+
+export interface DBResource {
+  resourceID: string;
+  clusterID: number;
+  name: string;
+  kind: string;
+  namespace: string;
+  controlScanDate: Date;
+  controlSummary: SeveritySummary;
+  controlList: string | SeverityItem[];
+  imageScanDate?: Date;
+  imageSummary?: SeveritySummary;
+}
+
+export interface DBControl {
+  controlID: string;
+  scanDate: Date;
+  clusterID: number;
+  name: string;
+  severity: string;
+  complianceScore: number;
+}
+
+export interface DBVulnerability {
+  CVE_ID: string;
+  resourceID: string;
+  severity: string;
+  package: string;
+  version: string;
+  fixVersions: string[];
+  fixedState: string;
+}
 
 export class KubescapeDatabse {
   private readonly db: Knex;
@@ -39,50 +88,105 @@ export class KubescapeDatabse {
     return new KubescapeDatabse(client);
   }
 
-  async updateFailedResource(newResources: Resource[]) {
-    await this.db('resources').where('cluster_id', 0).del();
+  async updateClusterHistory(
+    clusterID,
+    nsaScore: number,
+    mitreScore: number,
+    scanDate: Date,
+    controlSummary: SeveritySummary | string,
+  ) {
+    await this.db('clusters').where('name', clusterID).del();
+    await this.db('clusters').insert({
+      name: clusterID,
+      kubeconf: {},
+      nsaScore: nsaScore,
+      mitreScore: mitreScore,
+      history: JSON.stringify([controlSummary]),
+    });
+  }
+
+  async updateResources(clusterID, newResources: DBResource[]) {
+    await this.db('resources').where('clusterID', clusterID).del();
     await this.db.insert(newResources, ['id']).into('resources');
   }
 
-  async updateControls(newControls: Control[]) {
-    await this.db('controls').where('cluster_id', 0).del();
+  async updateControls(clusterID, newControls: DBControl[]) {
+    await this.db('controls').where('clusterID', clusterID).del();
     await this.db.insert(newControls, ['id']).into('controls');
   }
 
-  async getResourceList(cluster_id: number): Promise<Resource[]> {
-    const result: Resource[] = await this.db('resources')
-      .where('cluster_id', cluster_id)
+  async getResourceList(clusterID: number): Promise<DBResource[]> {
+    const result: DBResource[] = await this.db('resources')
+      .where('clusterID', clusterID)
       .select();
+    // console.log(result);
+    return result;
+  }
+
+  async getClusterSummary(clusterID: number): Promise<DBCluster> {
+    const result: DBCluster = await this.db('clusters')
+      .where('name', clusterID)
+      .first();
+    // console.log(result);
     return result;
   }
 
   async getControlsByResource(
-    cluster_id: number,
-    resource_id: string,
-  ): Promise<Control[] | undefined> {
-    const resource: Resource = await this.db('resources')
-      .where('cluster_id', cluster_id)
-      .where('resource_id', resource_id)
+    clusterID: number,
+    resourceID: string,
+  ): Promise<DBControl[] | undefined> {
+    const resource: DBResource = await this.db('resources')
+      .where('clusterID', clusterID)
+      .where('resourceID', resourceID)
       .first();
     if (resource === undefined) {
       return undefined;
     }
-    const controlRows: Control[] = await this.db('controls')
-      .where('cluster_id', cluster_id)
+    const controlRows: DBControl[] = await this.db('controls')
+      .where('clusterID', clusterID)
       .whereIn(
-        'control_id',
-        (resource.control_list as SeverityItem[]).map(obj => obj.id),
+        'controlID',
+        (resource.controlList as SeverityItem[]).map(obj => obj.id),
       );
     return controlRows;
   }
 
-  async updateResourceVulnerabilities(
-    resource_id: string,
-    vulnerabilities: VulnerabilitiesInfo[],
+  async getVulnerabilitiesByResource(
+    clusterID: number,
+    resourceID: string,
+  ): Promise<DBVulnerability[] | undefined> {
+    console.log(resourceID);
+    const resource: DBResource = await this.db('resources')
+      .where('clusterID', clusterID)
+      .where('resourceID', resourceID)
+      .first();
+    if (resource === undefined) {
+      return undefined;
+    }
+    const vulnerabilitiesRows: DBVulnerability[] = await this.db(
+      'vulnerabilities',
+    )
+      // .where('clusterID', clusterID)
+      .where('resourceID', resourceID);
+    return vulnerabilitiesRows;
+  }
+
+  async updateVulnerabilities(
+    resourceID: string,
+    vulnerabilities: DBVulnerability[],
+    vulnerabilitySummary: SeveritySummary,
   ) {
-    await this.db('vulnerabilities').where('resource_id', resource_id).del();
-    // console.log(vulnerabilities);s
+    await this.db('vulnerabilities').where('resourceID', resourceID).del();
     await this.db.insert(vulnerabilities, ['id']).into('vulnerabilities');
+    await this.db('resources')
+      .where('resourceID', resourceID)
+      .update({ imageSummary: vulnerabilitySummary }, ['id']);
+  }
+
+  async initWorkloadScan(resourceID: string) {
+    await this.db('resources')
+      .where('resourceID', resourceID)
+      .update({ imageScanDate: new Date() }, ['id']);
   }
 
   async addCluster(

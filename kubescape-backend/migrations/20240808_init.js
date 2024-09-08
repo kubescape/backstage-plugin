@@ -6,41 +6,45 @@ exports.up = async function up(knex) {
       table.increments('id');
       table.string('name').notNullable()
       table.text('kubeconf').notNullable()
+      table.float('nsaScore')
+      table.float('mitreScore')
+      table.json('history').notNullable() // [{data:data, severitySummary: severitySummary}]
       table.index('name')
     });
 
     await knex.schema.createTable('controls', table => {
       // cluster id, resources
       table.increments('id');
-      table.string('control_id').notNullable();
+      table.string('controlID').notNullable();
       table.string('name').notNullable();
       table.string('severity').notNullable();
-      table.datetime('created').notNullable();
-      table.decimal('compliance_score').notNullable();
-      table.integer('cluster_id').notNullable();
-      table.index('control_id')
+      table.datetime('scanDate').notNullable();
+      table.decimal('complianceScore').notNullable();
+      table.integer('clusterID').notNullable();
+      table.index('controlID')
     });
 
     await knex.schema.createTable('resources', table => {
       // cluster id
       table.increments('id');
-      table.text('resource_id').notNullable();
+      table.text('resourceID').notNullable();
+      table.integer('clusterID').notNullable();
       table.string('name').notNullable();
       table.string('kind').notNullable();
       table.string('namespace').notNullable();
-      table.json('control_list').notNullable();
       table.datetime('controlScanDate').notNullable();
-      table.json('CVE_list').notNullable();
+      table.json('controlSummary').notNullable();  
+      table.json('controlList').notNullable();
       table.dateTime('imageScanDate')
-      table.integer('cluster_id').notNullable();
-      table.index('resource_id')
+      table.json('imageSummary');
+      table.index('resourceID')
     });
 
     await knex.schema.createTable('vulnerabilities', table => {
       // cluster id
       table.increments('id');
-      table.text('resource_id').notNullable()
-      table.string('vulnerabilities_id').notNullable();
+      table.text('resourceID').notNullable()
+      table.string('CVE_ID').notNullable();
       table.string('severity').notNullable();
       table.string('package').notNullable();
       table.string('version').notNullable();

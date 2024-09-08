@@ -24,9 +24,9 @@ const columns: GridColDef[] = [
         underline="hover"
         target="_blank"
         rel="noopener noreferrer"
-        href={`https://hub.armosec.io/docs/${params.row.control_id.toLowerCase()}`}
+        href={`https://hub.armosec.io/docs/${params.row.controlID.toLowerCase()}`}
       >
-        <Typography> {params.row.control_id}</Typography>
+        <Typography> {params.row.controlID}</Typography>
       </Link>
     ),
   },
