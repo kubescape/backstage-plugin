@@ -40,25 +40,24 @@ const columns: GridColDef[] = [
     headerName: 'Severity',
     minWidth: 200,
   },
-  {
-    field: 'autofix',
-    headerName: 'Auto Fix',
-    minWidth: 200,
-  },
+  // {
+  //   field: 'autofix',
+  //   headerName: 'Auto Fix',
+  //   minWidth: 200,
+  // },
 ];
 
-export function ControlSidePanelComponent({ data, operatePanel }) {
+export function ControlSidePanelComponent({ clusterName, data, operatePanel }) {
   const [controlRows, setControlRows] = useState<ControlResponse[]>([]);
 
   useEffect(() => {
-    getResourceControlList(0, data?.id).then(rows => {
+    getResourceControlList(clusterName, data?.id).then(rows => {
       setControlRows(rows);
     });
-  }, [data]);
+  }, [clusterName, data]);
   if (data === undefined) {
     return <div>is loading</div>;
   }
-  // test
 
   return (
     <Page themeId="tool">
@@ -72,7 +71,7 @@ export function ControlSidePanelComponent({ data, operatePanel }) {
           </Grid>
           <Grid item>
             <ContentHeader title={`Resource: ${data.name} `}>
-              <Button variant="contained">Scan</Button>
+              {/* <Button variant="contained">Scan</Button> */}
             </ContentHeader>
           </Grid>
         </Grid>

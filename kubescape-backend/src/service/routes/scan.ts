@@ -30,7 +30,7 @@ export const scanRoutes = (router: Router, options: RouterOptions) => {
     const clusterID = request.query.clusterID;
     logger.info(`Compliance scan cluster ${clusterID}`);
     try {
-      complianceScan(database, clusterID as number).then(() => {
+      complianceScan(database, clusterID).then(() => {
         response.json({ status: 'success', scanResult: 'scan successful' });
       });
     } catch {

@@ -1,4 +1,8 @@
-import { DiscoveryApi } from '@backstage/core-plugin-api';
+import {
+  DiscoveryApi,
+  FetchApi,
+  fetchApiRef,
+} from '@backstage/core-plugin-api';
 import {
   SeveritySummary,
   DBResource,
@@ -69,7 +73,7 @@ export interface VulnerabilityResponse {
 
 const baseURL = 'http://localhost:7007/api/kubescape';
 
-export async function getCompliancScan(clusterID: number) {
+export async function getCompliancScan(clusterID: string) {
   const response = await fetch(
     `${baseURL}/complianceScan?clusterID=${clusterID}`,
   );
@@ -90,7 +94,6 @@ export async function getResourceList(
   }
   const json = await response.json();
   return json.scanResult;
-  // const clusterSummary = await fetch
 }
 
 export async function getBasicScan(): Promise<BasicScanResponse> {
@@ -153,11 +156,24 @@ export async function scanWorkloadVulnerabilities(
   return result;
 }
 
-export async function addCluster(clusterName: string, config: string) {
-  const response = await fetch(`${baseURL}/addCluster`, {
+export async function addCluster(
+  clusterName: string,
+  config: string,
+  fetchApi: FetchApi,
+) {
+  const response = await fetchApi.fetch(`${baseURL}/addCluster`, {
     method: 'POST',
     body: JSON.stringify({ name: clusterName, config: config }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
   });
+  const result = await response.json();
+  return result;
+}
 
-  return response.json().result;
+export async function getClusterList(fetchApi: FetchApi) {
+  const response = await fetchApi.fetch(`${baseURL}/clusters`);
+  const result = await response.json();
+  return result;
 }

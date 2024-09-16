@@ -10,11 +10,14 @@ import { VulnerabilitiesInfo } from '../service/routes/scan.service';
 import { json } from 'express';
 
 export interface SeveritySummary {
-  critical: number;
-  high: number;
-  medium: number;
-  low: number;
-  unknown: number;
+  scanDate: Date;
+  summary: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    unknown: number;
+  };
 }
 
 export interface DBCluster {
@@ -27,7 +30,7 @@ export interface DBCluster {
 
 export interface DBResource {
   resourceID: string;
-  clusterID: number;
+  clusterID: string;
   name: string;
   kind: string;
   namespace: string;
@@ -95,14 +98,18 @@ export class KubescapeDatabse {
     scanDate: Date,
     controlSummary: SeveritySummary | string,
   ) {
-    await this.db('clusters').where('name', clusterID).del();
-    await this.db('clusters').insert({
-      name: clusterID,
-      kubeconf: {},
-      nsaScore: nsaScore,
-      mitreScore: mitreScore,
-      history: JSON.stringify([controlSummary]),
-    });
+    const history = await this.db('clusters')
+      .where('name', clusterID)
+      .select('history');
+    history.push({ scanDate: scanDate, summary: controlSummary });
+
+    await this.db('clusters')
+      .where('name', clusterID)
+      .update({
+        nsaScore: nsaScore,
+        mitreScore: mitreScore,
+        history: JSON.stringify(history),
+      });
   }
 
   async updateResources(clusterID, newResources: DBResource[]) {
@@ -192,6 +199,7 @@ export class KubescapeDatabse {
   async addCluster(
     cluster_name: string,
     cluster_config: string,
+    owner: string,
   ): Promise<string> {
     if (
       (await this.db('clusters').where('name', cluster_name).first()) !==
@@ -200,12 +208,25 @@ export class KubescapeDatabse {
       return 'Name already used';
     }
     await this.db
-      .insert({ name: cluster_name, kubeconf: cluster_config }, ['id'])
+      .insert(
+        {
+          name: cluster_name,
+          kubeconf: cluster_config,
+          history: JSON.stringify([]),
+          ownership: owner,
+        },
+        ['id'],
+      )
       .into('clusters');
     return 'success';
   }
 
-  async getClusterList(): Promise<Cluster[]> {
-    return await this.db('clusters').select();
+  async getClusterList(user: string): Promise<Cluster[]> {
+    return await this.db('clusters').where('ownership', user);
+  }
+
+  async getClusterConfig(cluster: string): Promise<Cluster> {
+    return await this.db('clusters').first();
+    // return await this.db('cluster').where('name', cluster).first();
   }
 }

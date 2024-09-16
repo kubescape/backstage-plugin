@@ -18,7 +18,7 @@ import {
   Typography,
 } from '@material-ui/core';
 import { useNavigate } from 'react-router-dom';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SeverityDisplayComponent } from '../SeverityDisplayComponent';
 import { ChipData } from '../SeverityDisplayComponent/SeverityDisplayComponent';
 import {
@@ -29,9 +29,19 @@ import {
   GridRowsProp,
 } from '@mui/x-data-grid';
 import { AddClusterForm } from './AddClusterFormComponent';
+import { fetchApiRef, useApi } from '@backstage/core-plugin-api';
+import { getClusterList } from '../../api/KubescapeClient';
 
 export function LandingPage() {
+  const fetchApi = useApi(fetchApiRef);
   const [formOpen, setFormOpen] = useState(false);
+  const [rows, setRows] = useState<GridRowsProp>([]);
+
+  useEffect(() => {
+    getClusterList(fetchApi).then(data => {
+      setRows(data);
+    });
+  }, []);
 
   const handleClickOpen = () => {
     setFormOpen(true);
@@ -46,10 +56,21 @@ export function LandingPage() {
     navigate('../cluster', { state: { from: source } });
   };
 
+  const parseSeverityInfo = stats => {
+    if (stats === null) return undefined;
+
+    const severityResult = Object.entries(stats).map(([key, value]) => ({
+      key: key,
+      label: value,
+    }));
+
+    return severityResult;
+  };
+
   const columns: GridColDef[] = [
     {
       headerName: 'Cluster Name',
-      field: 'clusterName',
+      field: 'name',
       width: 200,
       renderCell: (params: GridRenderCellParams) => (
         <Button
@@ -63,40 +84,35 @@ export function LandingPage() {
         </Button>
       ),
     },
-    { headerName: 'Node', field: 'node', width: 110 },
     {
       headerName: 'Last Scan',
-      field: 'lastScan',
+      field: 'scanFate',
       type: 'string',
-      width: 200,
+      width: 300,
       valueFormatter: params => {
-        return params.value?.toLocaleString();
+        if (params.row.history.length > 0) {
+          return new Date(
+            params.row.history[params.row.history.length - 1].scanDate,
+          ).toUTCString();
+        }
+        return '';
       },
     },
-    { headerName: 'Framework', field: 'framework', width: 200 },
     {
       headerName: 'Failed Controls',
-      field: 'failedResources',
-      minWidth: 305,
+      field: 'history',
+      minWidth: 405,
       renderCell: (params: GridRenderCellParams) => (
-        <SeverityDisplayComponent data={params.value as ChipData[]} />
+        <SeverityDisplayComponent
+          data={
+            params.value.length > 0
+              ? (parseSeverityInfo(
+                  params.value[params.value.length - 1].summary,
+                ) as ChipData[])
+              : (parseSeverityInfo([]) as ChipData[])
+          }
+        />
       ),
-    },
-  ];
-
-  const placeholderData: GridRowsProp = [
-    {
-      id: 1,
-      clusterName: 'my minikube',
-      node: 3,
-      framework: 'NSA',
-      lastScan: new Date(),
-      failedResources: [
-        { key: 'Critical', label: 0 },
-        { key: 'High', label: 0 },
-        { key: 'Medium', label: 0 },
-        { key: 'Low', label: 0 },
-      ],
     },
   ];
 
@@ -116,8 +132,12 @@ export function LandingPage() {
           </Button>
           <SupportButton>A description of your plugin goes here.</SupportButton>
         </ContentHeader>
-        <AddClusterForm formOpen={formOpen} handleClose={handleClose} />
-        <DataGrid columns={columns} rows={placeholderData} />
+        <AddClusterForm
+          formOpen={formOpen}
+          handleClose={handleClose}
+          setRows={setRows}
+        />
+        <DataGrid columns={columns} rows={rows} />
       </Content>
     </Page>
   );

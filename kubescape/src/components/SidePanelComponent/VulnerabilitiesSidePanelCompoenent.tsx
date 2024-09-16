@@ -61,16 +61,20 @@ const columns: GridColDef[] = [
   },
 ];
 
-export function VulnerabilitiesSidePanelComponent({ data, operatePanel }) {
+export function VulnerabilitiesSidePanelComponent({
+  clusterName,
+  data,
+  operatePanel,
+}) {
   const [vulnerabilityRows, setVulnerabilityRows] = useState<
     VulnerabilityResponse[]
   >([]);
 
   useEffect(() => {
-    getResourceVulnerabiliyList(0, data?.id).then(rows => {
+    getResourceVulnerabiliyList(clusterName, data?.id).then(rows => {
       setVulnerabilityRows(rows);
     });
-  }, [data]);
+  }, [clusterName, data]);
 
   if (data === undefined) {
     return <div>is loading</div>;
@@ -88,7 +92,7 @@ export function VulnerabilitiesSidePanelComponent({ data, operatePanel }) {
           </Grid>
           <Grid item>
             <ContentHeader title={`Resource:  ${data.name}`}>
-              <Button variant="contained">Scan</Button>
+              {/* <Button variant="contained">Scan</Button> */}
             </ContentHeader>
           </Grid>
         </Grid>

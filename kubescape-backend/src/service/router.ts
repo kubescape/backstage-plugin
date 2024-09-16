@@ -11,7 +11,7 @@ import { clusterRoutes } from './routes/cluster';
 export async function createRouter(
   options: RouterOptions,
 ): Promise<express.Router> {
-  const { logger, config, database } = options;
+  const { httpAuth, userInfo, logger, config, database } = options;
 
   const router = Router();
   router.use(express.json());

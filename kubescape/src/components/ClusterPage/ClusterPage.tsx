@@ -1,6 +1,13 @@
 /* eslint-disable no-console */
 import React, { PropsWithChildren, useEffect, useState } from 'react';
-import { Link, MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
+import {
+  Link,
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
 import {
   Box,
   Button,
@@ -51,8 +58,7 @@ const useStyles = makeStyles({
   },
 });
 
-const date = new Date();
-const clusterName = 'Minikube';
+// const clusterName = 'Minikube';
 
 const failure_data = [
   { type: 'Critical', count: 0 },
@@ -78,7 +84,6 @@ const severityComparator: GridComparatorFn = (
 };
 
 export function ClusterPage() {
-  // const [scanResult, setScanResult] = useState('');
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [sidePanelType, setSidePanelType] = useState('');
   const [selectedResource, setSelectedResource] = useState<GridRowData>();
@@ -89,6 +94,9 @@ export function ClusterPage() {
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: 'failedControls', sort: 'desc' },
   ]);
+
+  const location = useLocation();
+  const clusterName = location.state.from;
 
   const parseSeverityInfo = (stats, type: 'control' | 'vulnerability') => {
     if (stats === null) return undefined;
@@ -121,9 +129,10 @@ export function ClusterPage() {
 
   const updatePage = () => {
     console.log('fetch data from backend');
-    getResourceList(0).then(result => {
+    getResourceList(clusterName).then(result => {
       console.log('fetched resources from backend');
-      if (result === undefined) {
+      console.log(result);
+      if (result.nsaScore === undefined || result.nsaScore === null) {
         return;
       }
       const resourcesResult = result.resourceDetails.map(obj => ({
@@ -306,7 +315,7 @@ export function ClusterPage() {
                 <Button
                   variant="contained"
                   color="primary"
-                  onClick={() => getCompliancScan(0)}
+                  onClick={() => getCompliancScan(clusterName)}
                 >
                   Compliance Scan
                 </Button>
@@ -344,12 +353,14 @@ export function ClusterPage() {
         <div className={classes.sidePanel}>
           {sidePanelType === 'Control' && (
             <ControlSidePanelComponent
+              clusterName={clusterName}
               data={selectedResource}
               operatePanel={closePanel}
             />
           )}
           {sidePanelType === 'Vulnerabilities' && (
             <VulnerabilitiesSidePanelComponent
+              clusterName={clusterName}
               data={selectedResource}
               operatePanel={closePanel}
             />

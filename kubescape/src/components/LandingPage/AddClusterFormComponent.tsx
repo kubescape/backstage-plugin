@@ -8,9 +8,11 @@ import {
   Button,
 } from '@material-ui/core';
 import React, { useState } from 'react';
-import { addCluster } from '../../api/KubescapeClient';
+import { addCluster, getClusterList } from '../../api/KubescapeClient';
+import { fetchApiRef, useApi } from '@backstage/core-plugin-api';
 
-export function AddClusterForm({ formOpen, handleClose }) {
+export function AddClusterForm({ formOpen, handleClose, setRows }) {
+  const fetchApi = useApi(fetchApiRef);
   const [clusterName, setClusterName] = useState('');
   const [config, setConfig] = useState('');
   const [error, setError] = useState('');
@@ -42,13 +44,15 @@ export function AddClusterForm({ formOpen, handleClose }) {
           />
         )}
 
-        <TextField
-          required
-          label="Cluster Name"
-          fullWidth
-          value={clusterName}
-          onChange={handleNameChange}
-        />
+        {error === '' && (
+          <TextField
+            required
+            label="Cluster Name"
+            fullWidth
+            value={clusterName}
+            onChange={handleNameChange}
+          />
+        )}
         <TextField
           required
           label="Kubeconfig Content"
@@ -60,8 +64,12 @@ export function AddClusterForm({ formOpen, handleClose }) {
         <DialogActions>
           <Button
             onClick={() => {
-              addCluster(clusterName, config).then(status => {
+              addCluster(clusterName, config, fetchApi).then(response => {
+                const status = response.result;
                 if (status === 'success') {
+                  getClusterList(fetchApi).then(data => {
+                    setRows(data);
+                  });
                   handleClose();
                 } else {
                   setError(status);

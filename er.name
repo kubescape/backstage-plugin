@@ -1,0 +1,16 @@
+user.name=HiroakiYo
+user.email=56850524+HiroakiYo@users.noreply.github.com
+credential.helper=/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager-core.exe
+init.defaultbranch=main
+core.repositoryformatversion=0
+core.filemode=true
+core.bare=false
+core.logallrefupdates=true
+remote.origin.url=https://github.com/kubescape/backstage-plugin.git
+remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
+pull.rebase=false
+branch.main.remote=origin
+branch.main.merge=refs/heads/main
+branch.refactor_for_image_scan.vscode-merge-base=origin/main
+branch.refactor_for_image_scan.remote=origin
+branch.refactor_for_image_scan.merge=refs/heads/refactor_for_image_scan

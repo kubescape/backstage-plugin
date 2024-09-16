@@ -160,7 +160,7 @@ export async function getResourceList(
   return {
     nsaScore: cluster.nsaScore,
     mitreScore: cluster.mitreScore,
-    totalControlFailure: cluster.history[0],
+    totalControlFailure: cluster.history[cluster.history.length - 1].summary,
     resourceDetails: resources,
   };
 }
@@ -183,14 +183,21 @@ export async function getVulnerabilityListByResourceID(
 
 export async function complianceScan(
   database: KubescapeDatabse,
-  clusterID: number,
+  clusterName: string,
 ) {
   const scanDate = new Date();
-  // execSync(
-  //   // --kubeconfig ./kubescapeScanResult/kube.conf
-  //   'kubescape scan  --format json --format-version v2 --output ./kubescapeScanResult/results2.json',
-  //   { encoding: 'utf-8' },
-  // );
+  const clusterConfig = await database.getClusterConfig(clusterName);
+  fs.writeFileSync('./kubescapeScanResult/kube.conf', clusterConfig.kubeconf);
+
+  try {
+    execSync(
+      // --kubeconfig ./kubescapeScanResult/kube.conf
+      'kubescape scan --kubeconfig ./kubescapeScanResult/kube.conf --format json --format-version v2 --output ./kubescapeScanResult/results2.json',
+      { encoding: 'utf-8' },
+    );
+  } catch (e) {
+    console.log(e);
+  }
 
   const data = fs.readFileSync('./kubescapeScanResult/results2.json', {
     encoding: 'utf8',
@@ -211,17 +218,17 @@ export async function complianceScan(
     controlID: controlID,
     severity: getSeverity(control.scoreFactor),
     complianceScore: control.complianceScore,
-    clusterID: 0,
+    clusterID: clusterName,
     // 0 for test
   }));
   // update cluster control info
-  database.updateControls(0, scannedControl);
+  database.updateControls(clusterName, scannedControl);
 
   const scannedResource: DBResource[] = [];
   for (const resource of rawJson.results) {
     const mapping: DBResource = {
       resourceID: '',
-      clusterID: 0,
+      clusterID: clusterName,
       name: '',
       kind: '',
       namespace: '',
@@ -260,7 +267,7 @@ export async function complianceScan(
     scannedResource.push(mapping);
   }
   // test cluster 0
-  await database.updateResources(0, scannedResource);
+  await database.updateResources(clusterName, scannedResource);
 
   const nsaScore = rawJson.summaryDetails.frameworks[2]
     .complianceScore as number;
@@ -274,7 +281,7 @@ export async function complianceScan(
     unknown: 0,
   };
   await database.updateClusterHistory(
-    0,
+    clusterName,
     nsaScore,
     mitreScore,
     scanDate,

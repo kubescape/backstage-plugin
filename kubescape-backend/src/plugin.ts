@@ -15,15 +15,19 @@ export const kubescapePlugin = createBackendPlugin({
   register(env) {
     env.registerInit({
       deps: {
+        httpAuth: coreServices.httpAuth,
+        userInfo: coreServices.userInfo,
         httpRouter: coreServices.httpRouter,
         database: coreServices.database,
         logger: coreServices.logger,
         config: coreServices.rootConfig,
       },
-      async init({ httpRouter, database, logger, config }) {
+      async init({ httpAuth, userInfo, httpRouter, database, logger, config }) {
         const KubescapeDB = await KubescapeDatabse.create(database);
         httpRouter.use(
           await createRouter({
+            httpAuth,
+            userInfo,
             logger,
             config,
             database: KubescapeDB,
