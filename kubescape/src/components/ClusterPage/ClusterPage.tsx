@@ -44,13 +44,13 @@ import {
 
 import {
   BasicScanResponse,
-  getBasicScan,
   getCompliancScan,
   getResourceList,
   ResourceDetail,
   scanWorkloadVulnerabilities,
 } from '../../api/KubescapeClient';
 import { ResourecesWithImage } from '../../utils/constants';
+import { configApiRef, useApi } from '@backstage/core-plugin-api';
 
 const useStyles = makeStyles({
   sidePanel: {
@@ -97,6 +97,8 @@ export function ClusterPage() {
 
   const location = useLocation();
   const clusterName = location.state.from;
+  const config = useApi(configApiRef);
+  const baseURL = `${config.getString('backend.baseUrl')}/api/kubescape`;
 
   const parseSeverityInfo = (stats, type: 'control' | 'vulnerability') => {
     if (stats === null) return undefined;
@@ -129,7 +131,7 @@ export function ClusterPage() {
 
   const updatePage = () => {
     console.log('fetch data from backend');
-    getResourceList(clusterName).then(result => {
+    getResourceList(baseURL, clusterName).then(result => {
       console.log('fetched resources from backend');
       console.log(result);
       if (result.nsaScore === undefined || result.nsaScore === null) {
@@ -163,12 +165,16 @@ export function ClusterPage() {
     kind: string,
     namespace: string,
   ) {
-    scanWorkloadVulnerabilities(namespace, kind, name, resource_id).then(
-      data => {
-        console.log(data);
-        updatePage();
-      },
-    );
+    scanWorkloadVulnerabilities(
+      baseURL,
+      namespace,
+      kind,
+      name,
+      resource_id,
+    ).then(data => {
+      console.log(data);
+      updatePage();
+    });
   }
 
   useEffect(() => {
@@ -315,7 +321,7 @@ export function ClusterPage() {
                 <Button
                   variant="contained"
                   color="primary"
-                  onClick={() => getCompliancScan(clusterName)}
+                  onClick={() => getCompliancScan(baseURL, clusterName)}
                 >
                   Compliance Scan
                 </Button>

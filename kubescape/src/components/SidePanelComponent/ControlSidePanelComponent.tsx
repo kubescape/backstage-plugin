@@ -6,6 +6,7 @@ import {
   Page,
 } from '@backstage/core-components';
 import { Button, Grid, Typography, Link } from '@material-ui/core';
+import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import ArrowBackIosIcon from '@material-ui/icons/ArrowBackIos';
 import React, { useEffect, useState } from 'react';
@@ -49,9 +50,11 @@ const columns: GridColDef[] = [
 
 export function ControlSidePanelComponent({ clusterName, data, operatePanel }) {
   const [controlRows, setControlRows] = useState<ControlResponse[]>([]);
+  const config = useApi(configApiRef);
+  const baseURL = `${config.getString('backend.baseUrl')}/api/kubescape`;
 
   useEffect(() => {
-    getResourceControlList(clusterName, data?.id).then(rows => {
+    getResourceControlList(baseURL, clusterName, data?.id).then(rows => {
       setControlRows(rows);
     });
   }, [clusterName, data]);

@@ -9,13 +9,18 @@ import {
 } from '@material-ui/core';
 import React, { useState } from 'react';
 import { addCluster, getClusterList } from '../../api/KubescapeClient';
-import { fetchApiRef, useApi } from '@backstage/core-plugin-api';
+import { fetchApiRef, useApi, configApiRef } from '@backstage/core-plugin-api';
 
 export function AddClusterForm({ formOpen, handleClose, setRows }) {
   const fetchApi = useApi(fetchApiRef);
   const [clusterName, setClusterName] = useState('');
   const [config, setConfig] = useState('');
   const [error, setError] = useState('');
+  const backStageConfig = useApi(configApiRef);
+  const baseURL = `${backStageConfig.getString(
+    'backend.baseUrl',
+  )}/api/kubescape`;
+
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setClusterName(event.target.value);
   };
@@ -64,17 +69,19 @@ export function AddClusterForm({ formOpen, handleClose, setRows }) {
         <DialogActions>
           <Button
             onClick={() => {
-              addCluster(clusterName, config, fetchApi).then(response => {
-                const status = response.result;
-                if (status === 'success') {
-                  getClusterList(fetchApi).then(data => {
-                    setRows(data);
-                  });
-                  handleClose();
-                } else {
-                  setError(status);
-                }
-              });
+              addCluster(baseURL, clusterName, config, fetchApi).then(
+                response => {
+                  const status = response.result;
+                  if (status === 'success') {
+                    getClusterList(baseURL, fetchApi).then(data => {
+                      setRows(data);
+                    });
+                    handleClose();
+                  } else {
+                    setError(status);
+                  }
+                },
+              );
             }}
           >
             Submit

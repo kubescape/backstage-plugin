@@ -2,6 +2,8 @@ import {
   DiscoveryApi,
   FetchApi,
   fetchApiRef,
+  useApi,
+  configApiRef,
 } from '@backstage/core-plugin-api';
 import {
   SeveritySummary,
@@ -71,9 +73,7 @@ export interface VulnerabilityResponse {
   fixedState: string;
 }
 
-const baseURL = 'http://localhost:7007/api/kubescape';
-
-export async function getCompliancScan(clusterID: string) {
+export async function getCompliancScan(baseURL: string, clusterID: string) {
   const response = await fetch(
     `${baseURL}/complianceScan?clusterID=${clusterID}`,
   );
@@ -84,6 +84,7 @@ export async function getCompliancScan(clusterID: string) {
 }
 
 export async function getResourceList(
+  baseURL: string,
   clusterID: number,
 ): Promise<ResourceListResponse> {
   const response = await fetch(
@@ -96,17 +97,8 @@ export async function getResourceList(
   return json.scanResult;
 }
 
-export async function getBasicScan(): Promise<BasicScanResponse> {
-  const response = await fetch(`${baseURL}/scan`);
-  if (!response.ok) {
-    throw new Error(`Response status: ${response.status}`);
-  }
-  const json = await response.json();
-  const result: BasicScanResponse = json.scanResult;
-  return result;
-}
-
 export async function getResourceControlList(
+  baseURL: string,
   clusterId: number,
   resourceId: string,
 ): Promise<ControlResponse[]> {
@@ -122,6 +114,7 @@ export async function getResourceControlList(
 }
 
 export async function getResourceVulnerabiliyList(
+  baseURL: string,
   clusterId: number,
   resourceId: string,
 ): Promise<VulnerabilityResponse[]> {
@@ -137,6 +130,7 @@ export async function getResourceVulnerabiliyList(
 }
 
 export async function scanWorkloadVulnerabilities(
+  baseURL: string,
   namespace: string,
   type: string,
   name: string,
@@ -157,6 +151,7 @@ export async function scanWorkloadVulnerabilities(
 }
 
 export async function addCluster(
+  baseURL: string,
   clusterName: string,
   config: string,
   fetchApi: FetchApi,
@@ -172,7 +167,7 @@ export async function addCluster(
   return result;
 }
 
-export async function getClusterList(fetchApi: FetchApi) {
+export async function getClusterList(baseURL: string, fetchApi: FetchApi) {
   const response = await fetchApi.fetch(`${baseURL}/clusters`);
   const result = await response.json();
   return result;

@@ -6,6 +6,7 @@ import {
   Page,
 } from '@backstage/core-components';
 import { Button, Grid, Link, Typography } from '@material-ui/core';
+import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import ArrowBackIosIcon from '@material-ui/icons/ArrowBackIos';
 import React, { useEffect, useState } from 'react';
@@ -69,9 +70,11 @@ export function VulnerabilitiesSidePanelComponent({
   const [vulnerabilityRows, setVulnerabilityRows] = useState<
     VulnerabilityResponse[]
   >([]);
+  const config = useApi(configApiRef);
+  const baseURL = `${config.getString('backend.baseUrl')}/api/kubescape`;
 
   useEffect(() => {
-    getResourceVulnerabiliyList(clusterName, data?.id).then(rows => {
+    getResourceVulnerabiliyList(baseURL, clusterName, data?.id).then(rows => {
       setVulnerabilityRows(rows);
     });
   }, [clusterName, data]);

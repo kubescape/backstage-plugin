@@ -29,16 +29,20 @@ import {
   GridRowsProp,
 } from '@mui/x-data-grid';
 import { AddClusterForm } from './AddClusterFormComponent';
-import { fetchApiRef, useApi } from '@backstage/core-plugin-api';
+import { fetchApiRef, useApi, configApiRef } from '@backstage/core-plugin-api';
 import { getClusterList } from '../../api/KubescapeClient';
 
 export function LandingPage() {
   const fetchApi = useApi(fetchApiRef);
   const [formOpen, setFormOpen] = useState(false);
   const [rows, setRows] = useState<GridRowsProp>([]);
+  const backStageConfig = useApi(configApiRef);
+  const baseURL = `${backStageConfig.getString(
+    'backend.baseUrl',
+  )}/api/kubescape`;
 
   useEffect(() => {
-    getClusterList(fetchApi).then(data => {
+    getClusterList(baseURL, fetchApi).then(data => {
       setRows(data);
     });
   }, []);
