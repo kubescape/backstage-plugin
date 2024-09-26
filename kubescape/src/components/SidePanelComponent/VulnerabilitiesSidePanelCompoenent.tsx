@@ -94,9 +94,7 @@ export function VulnerabilitiesSidePanelComponent({
             </Button>
           </Grid>
           <Grid item>
-            <ContentHeader title={`Resource:  ${data.name}`}>
-              {/* <Button variant="contained">Scan</Button> */}
-            </ContentHeader>
+            <ContentHeader title={`Resource:  ${data.name}`} />
           </Grid>
         </Grid>
 

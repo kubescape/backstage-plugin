@@ -44,7 +44,6 @@ export const scanRoutes = (router: Router, options: RouterOptions) => {
     logger.info(`get resources from cluster ${clusterID}`);
     try {
       getResourceList(database, clusterID as number).then(resources => {
-        // console.log(resources);
         response.json({ status: 'success', scanResult: resources });
       });
     } catch {
@@ -52,25 +51,6 @@ export const scanRoutes = (router: Router, options: RouterOptions) => {
     }
     return response;
   });
-
-  // router.get('/getClusterSummary', (request, response) => {
-  //   const clusterID = request.query.clusterID;
-  //   try {
-  //     getClusterSummary(database, clusterID as number).then(resources => {
-  //       response.json({ status: 'success', scanResult: resources });
-  //     });
-  //   } catch {
-  //     response.json({ status: 'error', scanResult: 'scan failed' });
-  //   }
-  //   return response;
-  // });
-
-  // router.get('/scan', (_, response) => {
-  //   logger.info('SCAN!');
-  //   basicScan(database).then(result => {
-  //     response.json({ status: 'scan task received', scanResult: result });
-  //   });
-  // });
 
   router.get(
     '/resourceControls',

@@ -5,13 +5,38 @@ import {
   useApi,
   configApiRef,
 } from '@backstage/core-plugin-api';
-import {
-  SeveritySummary,
-  DBResource,
-} from '../../../kubescape-backend/src/database/KubescapeDatabase';
 
 export class KubescapeClient {
   private readonly discoveryAp: DiscoveryApi;
+}
+export interface SeveritySummary {
+  scanDate: Date;
+  summary: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    unknown: number;
+  };
+}
+
+export interface SeverityItem {
+  name: string;
+  id: string;
+  severity: string;
+}
+
+export interface DBResource {
+  resourceID: string;
+  clusterID: string;
+  name: string;
+  kind: string;
+  namespace: string;
+  controlScanDate: Date;
+  controlSummary: SeveritySummary;
+  controlList: string | SeverityItem[];
+  imageScanDate?: Date;
+  imageSummary?: SeveritySummary;
 }
 
 export interface SeverityStats {

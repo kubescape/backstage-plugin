@@ -9,10 +9,6 @@ export function RootPage() {
       <Route path="/" element={<Navigate to="landing" />} />
       <Route path="/landing" element={<LandingPage />} />
       <Route path="/cluster" element={<ClusterPage />} />
-      <Route path="/vulnerability" />
-      <Route path="/compliance" />
-      <Route path="/resource" />
-      <Route path="/control" />
     </Routes>
   );
 }

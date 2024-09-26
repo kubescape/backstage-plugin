@@ -58,8 +58,6 @@ const useStyles = makeStyles({
   },
 });
 
-// const clusterName = 'Minikube';
-
 const failure_data = [
   { type: 'Critical', count: 0 },
   { type: 'High', count: 0 },
@@ -343,8 +341,6 @@ export function ClusterPage() {
                 if (JSON.stringify(model) !== JSON.stringify(sortModel)) {
                   setSortModel(model);
                 }
-                // console.log('sort model change');
-                // setSortModel(model);
               }}
             />
           </Grid>

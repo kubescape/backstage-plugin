@@ -191,7 +191,6 @@ export async function complianceScan(
 
   try {
     execSync(
-      // --kubeconfig ./kubescapeScanResult/kube.conf
       'kubescape scan --kubeconfig ./kubescapeScanResult/kube.conf --format json --format-version v2 --output ./kubescapeScanResult/results2.json',
       { encoding: 'utf-8' },
     );
@@ -287,18 +286,4 @@ export async function complianceScan(
     scanDate,
     clusterSummary,
   );
-
-  // const resultJSON: BasicScanResponse = {
-  //   nsaScore: rawJson.summaryDetails.frameworks[2].complianceScore as number,
-  //   mitreScore: rawJson.summaryDetails.frameworks[2].complianceScore as number,
-  //   totalControlFailure: rawJson.summaryDetails
-  //     .controlsSeverityCounters as SeverityStats,
-  //   resourceDetails: [],
-  // };
-
-  // await database.getResourceList(0).then(resourceRows => {
-  //   resultJSON.resourceDetails = resourceRows;
-  // });
-
-  // return resultJSON;
 }

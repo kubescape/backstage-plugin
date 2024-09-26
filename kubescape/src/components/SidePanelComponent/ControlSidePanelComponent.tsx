@@ -41,11 +41,6 @@ const columns: GridColDef[] = [
     headerName: 'Severity',
     minWidth: 200,
   },
-  // {
-  //   field: 'autofix',
-  //   headerName: 'Auto Fix',
-  //   minWidth: 200,
-  // },
 ];
 
 export function ControlSidePanelComponent({ clusterName, data, operatePanel }) {
@@ -73,9 +68,7 @@ export function ControlSidePanelComponent({ clusterName, data, operatePanel }) {
             </Button>
           </Grid>
           <Grid item>
-            <ContentHeader title={`Resource: ${data.name} `}>
-              {/* <Button variant="contained">Scan</Button> */}
-            </ContentHeader>
+            <ContentHeader title={`Resource: ${data.name} `} />
           </Grid>
         </Grid>
 

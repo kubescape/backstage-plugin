@@ -5,18 +5,8 @@ import {
   HeaderLabel,
   Page,
   SupportButton,
-  Table,
-  TableColumn,
 } from '@backstage/core-components';
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Typography,
-} from '@material-ui/core';
+import { Button } from '@material-ui/core';
 import { useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
 import { SeverityDisplayComponent } from '../SeverityDisplayComponent';
@@ -25,7 +15,6 @@ import {
   DataGrid,
   GridColDef,
   GridRenderCellParams,
-  GridRowProps,
   GridRowsProp,
 } from '@mui/x-data-grid';
 import { AddClusterForm } from './AddClusterFormComponent';

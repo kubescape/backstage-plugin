@@ -73,10 +73,6 @@ export class KubescapeDatabse {
       '@internal/backstage-plugin-kubescape-backend',
       'migrations',
     );
-    // test code
-    await client.migrate.down({
-      directory: migrationsDir,
-    });
 
     if (!database.migrations?.skip) {
       try {
@@ -126,7 +122,6 @@ export class KubescapeDatabse {
     const result: DBResource[] = await this.db('resources')
       .where('clusterID', clusterID)
       .select();
-    // console.log(result);
     return result;
   }
 
@@ -134,7 +129,6 @@ export class KubescapeDatabse {
     const result: DBCluster = await this.db('clusters')
       .where('name', clusterID)
       .first();
-    // console.log(result);
     return result;
   }
 
@@ -172,9 +166,7 @@ export class KubescapeDatabse {
     }
     const vulnerabilitiesRows: DBVulnerability[] = await this.db(
       'vulnerabilities',
-    )
-      // .where('clusterID', clusterID)
-      .where('resourceID', resourceID);
+    ).where('resourceID', resourceID);
     return vulnerabilitiesRows;
   }
 
@@ -227,6 +219,5 @@ export class KubescapeDatabse {
 
   async getClusterConfig(cluster: string): Promise<Cluster> {
     return await this.db('clusters').first();
-    // return await this.db('cluster').where('name', cluster).first();
   }
 }
