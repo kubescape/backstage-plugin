@@ -25,7 +25,7 @@ const columns: GridColDef[] = [
         underline="hover"
         target="_blank"
         rel="noopener noreferrer"
-        href={`https://hub.armosec.io/docs/${params.row.controlID.toLowerCase()}`}
+        href={`https://kubescape.io/docs/controls/${params.row.controlID.toLowerCase()}`}
       >
         <Typography> {params.row.controlID}</Typography>
       </Link>
