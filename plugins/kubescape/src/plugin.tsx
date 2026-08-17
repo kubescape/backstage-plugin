@@ -1,4 +1,4 @@
-import { createFrontendPlugin } from '@backstage/frontend-plugin-api';
+import { createFrontendPlugin, FrontendPlugin } from '@backstage/frontend-plugin-api';
 import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
 
 const kubescapeEntityContent = EntityContentBlueprint.make({
@@ -11,7 +11,7 @@ const kubescapeEntityContent = EntityContentBlueprint.make({
   },
 });
 
-export const kubescapePlugin = createFrontendPlugin({
+export const kubescapePlugin: FrontendPlugin = createFrontendPlugin({
   pluginId: 'kubescape',
   extensions: [kubescapeEntityContent],
 });
